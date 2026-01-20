@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Cyberpunk Dark Theme */
+    --background: 240 10% 4%;
+    --foreground: 180 100% 97%;
+
+    --card: 240 10% 6%;
+    --card-foreground: 180 100% 97%;
+
+    --popover: 240 10% 8%;
+    --popover-foreground: 180 100% 97%;
+
+    /* Neon Cyan Primary */
+    --primary: 180 100% 50%;
+    --primary-foreground: 240 10% 4%;
+
+    /* Neon Magenta Secondary */
+    --secondary: 300 100% 50%;
+    --secondary-foreground: 240 10% 4%;
+
+    /* Muted cyberpunk grays */
+    --muted: 240 5% 15%;
+    --muted-foreground: 220 10% 50%;
+
+    /* Electric Pink Accent */
+    --accent: 330 100% 60%;
+    --accent-foreground: 240 10% 4%;
+
+    /* Neon Green for success/verified */
+    --success: 150 100% 45%;
+    --success-foreground: 240 10% 4%;
+
+    /* Warning Orange */
+    --warning: 35 100% 50%;
+    --warning-foreground: 240 10% 4%;
+
+    --destructive: 0 85% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 5% 18%;
+    --input: 240 5% 12%;
+    --ring: 180 100% 50%;
+
+    --radius: 0.5rem;
+
+    /* Neon glow effects */
+    --glow-cyan: 0 0 20px hsl(180 100% 50% / 0.5), 0 0 40px hsl(180 100% 50% / 0.3);
+    --glow-magenta: 0 0 20px hsl(300 100% 50% / 0.5), 0 0 40px hsl(300 100% 50% / 0.3);
+    --glow-pink: 0 0 20px hsl(330 100% 60% / 0.5), 0 0 40px hsl(330 100% 60% / 0.3);
+    --glow-green: 0 0 20px hsl(150 100% 45% / 0.5), 0 0 40px hsl(150 100% 45% / 0.3);
+
+    /* Gradients */
+    --gradient-neon: linear-gradient(135deg, hsl(180 100% 50%), hsl(300 100% 50%));
+    --gradient-cyber: linear-gradient(180deg, hsl(240 10% 8%) 0%, hsl(240 10% 4%) 100%);
+    --gradient-glow-border: linear-gradient(90deg, hsl(180 100% 50%), hsl(300 100% 50%), hsl(330 100% 60%));
+
+    /* Sidebar */
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 180 100% 97%;
+    --sidebar-primary: 180 100% 50%;
+    --sidebar-primary-foreground: 240 10% 4%;
+    --sidebar-accent: 240 5% 12%;
+    --sidebar-accent-foreground: 180 100% 97%;
+    --sidebar-border: 240 5% 15%;
+    --sidebar-ring: 180 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Custom scrollbar for cyberpunk feel */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.5);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .neon-text-cyan {
+    color: hsl(var(--primary));
+    text-shadow: var(--glow-cyan);
+  }
+
+  .neon-text-magenta {
+    color: hsl(var(--secondary));
+    text-shadow: var(--glow-magenta);
+  }
+
+  .neon-text-pink {
+    color: hsl(var(--accent));
+    text-shadow: var(--glow-pink);
+  }
+
+  .neon-border {
+    border: 1px solid hsl(var(--primary) / 0.5);
+    box-shadow: inset 0 0 10px hsl(var(--primary) / 0.1), var(--glow-cyan);
+  }
+
+  .neon-border-magenta {
+    border: 1px solid hsl(var(--secondary) / 0.5);
+    box-shadow: inset 0 0 10px hsl(var(--secondary) / 0.1), var(--glow-magenta);
+  }
+
+  .cyber-grid {
+    background-image: 
+      linear-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .scan-line {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scan-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent);
+    animation: scan 3s linear infinite;
+  }
+
+  @keyframes scan {
+    0% { top: 0; }
+    100% { top: 100%; }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+}

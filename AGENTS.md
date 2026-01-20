@@ -1,0 +1,32 @@
+# Style Guide (Cyberpunk Dark)
+
+## Tech Stack
+- Framework: Tailwind CSS + shadcn/ui (Radix UI)
+- Theme: Cyberpunk Dark (HSL via src/index.css)
+
+## Typography
+- Body: `font-sans` (Inter)
+- Heading/UI Label: `font-mono` (JetBrains Mono)
+
+## Color System (Tailwind Classes)
+- Primary: Neon Cyan (`primary`) | Secondary: Neon Magenta (`secondary`)
+- Accent: Electric Pink (`accent`) | Success: Neon Green (`success`)
+- System: `warning`, `destructive`, `muted`, `background`, `card`, `border`, `input`
+
+## Custom Utilities
+- Neon Text: `neon-text-{cyan|magenta|pink}`
+- Neon Border: `neon-border`, `neon-border-magenta`
+- Animation: `animate-pulse-glow`, `animate-float`
+- Background: `cyber-grid`
+
+## Styling Patterns
+1. Integration: Always use `cn()` utility from `@/lib/utils`.
+2. Interactive: `transition-all duration-200` + `hover:bg-{color}/30`.
+3. States: Focus via `focus-visible:ring-ring`, Disabled via `opacity-50`.
+4. Header: `font-mono text-xl font-bold neon-text-cyan`.
+5. Card: `rounded-lg border bg-card text-card-foreground shadow-sm`.
+
+## Constraints
+- NO hardcoded HSL/Hex. Use CSS variables via Tailwind.
+- Prefer existing shadcn/ui components.
+- Maintain consistency with `ProjectSidebar` and `TabNavigation`.

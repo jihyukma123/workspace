@@ -1,22 +1,24 @@
-import { ProjectSidebar } from '@/components/ProjectSidebar';
-import { TabNavigation } from '@/components/TabNavigation';
-import { KanbanBoard } from '@/components/KanbanBoard';
-import { WikiEditor } from '@/components/WikiEditor';
-import { MemoEditor } from '@/components/MemoEditor';
-import { useWorkspaceStore } from '@/store/workspaceStore';
+import { MainLayout } from "@/components/layout/MainLayout";
+import { KanbanBoard } from "@/components/KanbanBoard";
+import { WikiEditor } from "@/components/WikiEditor";
+import { MemoEditor } from "@/components/MemoEditor";
+import { TabNavigation } from "@/components/TabNavigation";
+import { useWorkspaceStore } from "@/store/workspaceStore";
+import { Search, Filter, Plus } from "lucide-react";
 
 const Index = () => {
-  const { activeTab, selectedProjectId } = useWorkspaceStore();
+  const { activeTab, selectedProjectId, projects } = useWorkspaceStore();
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   const renderContent = () => {
     if (!selectedProjectId) {
       return (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center neon-border animate-pulse-glow">
-              <span className="text-4xl">⚡</span>
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <span className="text-4xl">📋</span>
             </div>
-            <h2 className="font-mono text-2xl font-bold neon-text-cyan mb-2">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
               Welcome to Workspace
             </h2>
             <p className="text-muted-foreground max-w-md">
@@ -40,17 +42,51 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-background cyber-grid">
-      <ProjectSidebar />
-      
-      <main className="flex-1 flex flex-col overflow-hidden">
+    <MainLayout>
+      <div className="h-screen flex flex-col">
+        {/* Header */}
+        {selectedProjectId && (
+          <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">{selectedProject?.name || 'Workspace'}</h1>
+              <p className="text-sm text-muted-foreground">{selectedProject?.description || 'Select a project'}</p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-64 h-9 pl-9 pr-4 rounded-lg bg-muted/50 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                />
+              </div>
+              
+              {/* Filter */}
+              <button className="h-9 px-3 flex items-center gap-2 rounded-lg border border-border hover:bg-muted transition-colors">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-foreground">Filter</span>
+              </button>
+              
+              {/* Add Task */}
+              <button className="h-9 px-4 flex items-center gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">New</span>
+              </button>
+            </div>
+          </header>
+        )}
+
+        {/* Tab Navigation */}
         {selectedProjectId && <TabNavigation />}
-        
-        <div className="flex-1 flex overflow-hidden">
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
           {renderContent()}
         </div>
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   );
 };
 

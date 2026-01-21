@@ -45,11 +45,11 @@ export function MemoEditor() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center neon-border-magenta">
-            <StickyNote className="w-5 h-5 text-accent" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <StickyNote className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="font-mono text-lg font-semibold neon-text-pink">Quick Memo</h2>
+            <h2 className="text-lg font-semibold text-foreground">Quick Memo</h2>
             <p className="text-xs text-muted-foreground">
               Capture your thoughts instantly
             </p>
@@ -67,7 +67,7 @@ export function MemoEditor() {
             className={
               isSaved
                 ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-accent text-accent-foreground hover:bg-accent/90'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }
           >
             <Save className="w-4 h-4 mr-2" />
@@ -80,17 +80,17 @@ export function MemoEditor() {
       <div className="mb-4 flex items-center gap-2">
         <span
           className={`w-2 h-2 rounded-full ${
-            isSaved ? 'bg-success' : 'bg-warning animate-pulse'
+            isSaved ? 'bg-status-done' : 'bg-status-progress animate-pulse'
           }`}
         />
-        <span className="text-xs text-muted-foreground font-mono">
+        <span className="text-xs text-muted-foreground">
           {isSaved ? 'All changes saved' : 'Unsaved changes...'}
         </span>
       </div>
 
       {/* Editor */}
       <div className="flex-1 relative">
-        <div className="absolute inset-0 rounded-lg neon-border-magenta overflow-hidden">
+        <div className="absolute inset-0 rounded-lg border border-border overflow-hidden">
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -101,15 +101,15 @@ You can use Markdown:
 - List items
 - [ ] Todo items
 **Bold text**"
-            className="h-full w-full resize-none font-mono text-sm bg-card/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4"
+            className="h-full w-full resize-none text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4"
           />
         </div>
       </div>
 
       {/* Tips */}
       <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border">
-        <p className="text-xs text-muted-foreground font-mono">
-          <span className="text-accent">TIP:</span> Your memo auto-saves after 2 seconds of inactivity. 
+        <p className="text-xs text-muted-foreground">
+          <span className="text-primary font-medium">TIP:</span> Your memo auto-saves after 2 seconds of inactivity. 
           Use Markdown syntax for formatting.
         </p>
       </div>

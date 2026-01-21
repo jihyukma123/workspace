@@ -1,32 +1,55 @@
-# Style Guide (Cyberpunk Dark)
+# Style Guide
 
 ## Tech Stack
 - Framework: Tailwind CSS + shadcn/ui (Radix UI)
-- Theme: Cyberpunk Dark (HSL via src/index.css)
+- Theme: Dark/Light mode support (HSL via src/index.css)
+- Font: Inter (via Google Fonts)
 
 ## Typography
-- Body: `font-sans` (Inter)
-- Heading/UI Label: `font-mono` (JetBrains Mono)
+- Body: `font-sans` (Inter, system fallback)
+- UI Labels/Headers: `font-mono` (system monospace)
 
-## Color System (Tailwind Classes)
-- Primary: Neon Cyan (`primary`) | Secondary: Neon Magenta (`secondary`)
-- Accent: Electric Pink (`accent`) | Success: Neon Green (`success`)
-- System: `warning`, `destructive`, `muted`, `background`, `card`, `border`, `input`
+## Color System (CSS Variables via Tailwind)
+### Base Colors
+- Primary: Teal/Cyan (`primary`) - HSL(173 80% 40-45%)
+- Secondary: Gray (`secondary`) - HSL(220 14-20% 18-92%)
+- Accent: Matches primary (`accent`)
+- Destructive: Red (`destructive`) - HSL(0 62-72% 45-51%)
+- Muted: Gray variants (`muted`, `muted-foreground`)
+
+### Sidebar Colors
+- Background: `sidebar` (dark gray)
+- Foreground: `sidebar-foreground`
+- Primary: `sidebar-primary` (teal)
+- Accent: `sidebar-accent`
+- Border: `sidebar-border`
+- Muted: `sidebar-muted`
+
+### Kanban Colors
+- Column: `kanban-column`
+- Card: `kanban-card`
+- Card Hover: `kanban-card-hover`
+
+### Status Colors
+- Todo: `status-todo` (gray)
+- Progress: `status-progress` (yellow/orange)
+- Done: `status-done` (green)
 
 ## Custom Utilities
-- Neon Text: `neon-text-{cyan|magenta|pink}`
-- Neon Border: `neon-border`, `neon-border-magenta`
-- Animation: `animate-pulse-glow`, `animate-float`
-- Background: `cyber-grid`
+- Scrollbar: `scrollbar-thin` (thin custom scrollbar)
+- Animations: `animate-fade-in`, `animate-slide-in`, `animate-accordion-down/up`
 
 ## Styling Patterns
 1. Integration: Always use `cn()` utility from `@/lib/utils`.
-2. Interactive: `transition-all duration-200` + `hover:bg-{color}/30`.
+2. Interactive: `transition-all duration-200` + `hover:bg-{color}/30` or `hover:bg-sidebar-accent`.
 3. States: Focus via `focus-visible:ring-ring`, Disabled via `opacity-50`.
-4. Header: `font-mono text-xl font-bold neon-text-cyan`.
-5. Card: `rounded-lg border bg-card text-card-foreground shadow-sm`.
+4. Headers: `font-mono text-lg font-bold` with primary color.
+5. Cards: `rounded-lg border bg-card text-card-foreground shadow-sm`.
+6. Sidebar: Use `bg-sidebar`, `border-sidebar-border`, `text-sidebar-foreground`.
 
 ## Constraints
-- NO hardcoded HSL/Hex. Use CSS variables via Tailwind.
+- NO hardcoded HSL/Hex. Use CSS variables via Tailwind classes.
 - Prefer existing shadcn/ui components.
 - Maintain consistency with `ProjectSidebar` and `TabNavigation`.
+- Use `scrollbar-thin` for custom scrollbars.
+- Support both light and dark modes via `.dark` class.

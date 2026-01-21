@@ -67,21 +67,21 @@ export function WikiEditor() {
     return lines.map((line, index) => {
       if (line.startsWith('# ')) {
         return (
-          <h1 key={index} className="text-2xl font-mono font-bold neon-text-cyan mb-4">
+          <h1 key={index} className="text-2xl font-semibold text-foreground mb-4">
             {line.slice(2)}
           </h1>
         );
       }
       if (line.startsWith('## ')) {
         return (
-          <h2 key={index} className="text-xl font-mono font-semibold text-secondary mt-6 mb-3">
+          <h2 key={index} className="text-xl font-semibold text-foreground mt-6 mb-3">
             {line.slice(3)}
           </h2>
         );
       }
       if (line.startsWith('### ')) {
         return (
-          <h3 key={index} className="text-lg font-mono font-medium text-accent mt-4 mb-2">
+          <h3 key={index} className="text-lg font-medium text-foreground mt-4 mb-2">
             {line.slice(4)}
           </h3>
         );
@@ -150,16 +150,15 @@ export function WikiEditor() {
                 <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent className="bg-popover border-border">
               <DialogHeader>
-                <DialogTitle className="font-mono neon-text-cyan">New Wiki Page</DialogTitle>
+                <DialogTitle>New Wiki Page</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <Input
                   placeholder="Page title"
                   value={newPageTitle}
                   onChange={(e) => setNewPageTitle(e.target.value)}
-                  className="bg-input border-border focus:border-primary"
                 />
                 <Button
                   onClick={handleAddPage}
@@ -208,7 +207,7 @@ export function WikiEditor() {
         {selectedPage ? (
           <>
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <h2 className="font-mono text-lg font-semibold">{selectedPage.title}</h2>
+              <h2 className="text-lg font-semibold text-foreground">{selectedPage.title}</h2>
               <div className="flex items-center gap-2">
                 {isEditing ? (
                   <>
@@ -224,7 +223,7 @@ export function WikiEditor() {
                     <Button
                       size="sm"
                       onClick={handleSave}
-                      className="bg-success text-success-foreground hover:bg-success/90"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       <Save className="w-4 h-4 mr-1" />
                       Save
@@ -249,7 +248,7 @@ export function WikiEditor() {
                 <Textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="min-h-[500px] font-mono text-sm bg-input border-border focus:border-primary resize-none"
+                  className="min-h-[500px] text-sm resize-none"
                   placeholder="Write your documentation in Markdown..."
                 />
               ) : (

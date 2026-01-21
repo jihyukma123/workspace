@@ -2,7 +2,6 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
-import { TabNavigation } from "@/components/TabNavigation";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Search, Filter, Plus } from "lucide-react";
 
@@ -77,9 +76,6 @@ const Index = () => {
             </div>
           </header>
         )}
-
-        {/* Tab Navigation */}
-        {selectedProjectId && <TabNavigation />}
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">

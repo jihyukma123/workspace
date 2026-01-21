@@ -29,9 +29,9 @@ const initialProjects: Project[] = [
 ];
 
 const initialTasks: Task[] = [
-  { id: '1', title: 'Setup development environment', description: 'Configure all tools and dependencies', status: 'verified', priority: 'high', createdAt: new Date() },
+  { id: '1', title: 'Setup development environment', description: 'Configure all tools and dependencies', status: 'done', priority: 'high', createdAt: new Date() },
   { id: '2', title: 'Design system architecture', description: 'Create the overall system design', status: 'in-progress', priority: 'high', createdAt: new Date() },
-  { id: '3', title: 'Implement authentication', description: 'Add user login and registration', status: 'waiting-approval', priority: 'medium', createdAt: new Date() },
+  { id: '3', title: 'Implement authentication', description: 'Add user login and registration', status: 'done', priority: 'medium', createdAt: new Date() },
   { id: '4', title: 'Create API endpoints', description: 'Build REST API for the application', status: 'backlog', priority: 'medium', createdAt: new Date() },
   { id: '5', title: 'Write unit tests', description: 'Add comprehensive test coverage', status: 'backlog', priority: 'low', createdAt: new Date() },
   { id: '6', title: 'Database optimization', description: 'Improve query performance', status: 'in-progress', priority: 'medium', createdAt: new Date() },

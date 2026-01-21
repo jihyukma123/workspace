@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GripVertical, Trash2, Clock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { GripVertical, Trash2, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Task, KanbanColumn } from '@/types/workspace';
 import { cn } from '@/lib/utils';
@@ -8,15 +8,13 @@ import { Button } from '@/components/ui/button';
 const columns: KanbanColumn[] = [
   { id: 'backlog', title: 'Backlog', color: 'primary' },
   { id: 'in-progress', title: 'In Progress', color: 'secondary' },
-  { id: 'waiting-approval', title: 'Waiting Approval', color: 'warning' },
-  { id: 'verified', title: 'Verified', color: 'success' },
+  { id: 'done', title: 'Done', color: 'success' },
 ];
 
 const columnIcons = {
   backlog: Clock,
   'in-progress': Loader2,
-  'waiting-approval': AlertCircle,
-  verified: CheckCircle2,
+  done: CheckCircle2,
 };
 
 const priorityColors = {

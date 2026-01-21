@@ -1,13 +1,48 @@
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Search, Filter, Plus } from "lucide-react";
+import { Task } from "@/types/workspace";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
-  const { activeTab, selectedProjectId, projects } = useWorkspaceStore();
+  const { activeTab, selectedProjectId, projects, addTask } = useWorkspaceStore();
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' as Task['priority'] });
+
+  const handleAddTask = () => {
+    if (newTask.title.trim()) {
+      addTask({
+        id: Date.now().toString(),
+        title: newTask.title,
+        description: newTask.description,
+        status: 'backlog',
+        priority: newTask.priority,
+        createdAt: new Date(),
+      });
+      setNewTask({ title: '', description: '', priority: 'medium' });
+      setIsTaskDialogOpen(false);
+    }
+  };
 
   const renderContent = () => {
     if (!selectedProjectId) {
@@ -69,10 +104,61 @@ const Index = () => {
               </button>
               
               {/* Add Task */}
-              <button className="h-9 px-4 flex items-center gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-                <Plus className="w-4 h-4" />
-                <span className="text-sm font-medium">New</span>
-              </button>
+              {activeTab === 'kanban' && (
+                <>
+                  <Button
+                    onClick={() => setIsTaskDialogOpen(true)}
+                    className="h-9 px-4 flex items-center gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">Add Task</span>
+                  </Button>
+                  <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+                    <DialogContent className="bg-popover border-border">
+                      <DialogHeader>
+                        <DialogTitle>New Task</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-4">
+                        <Input
+                          placeholder="Task title"
+                          value={newTask.title}
+                          onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleAddTask();
+                            }
+                          }}
+                        />
+                        <Textarea
+                          placeholder="Description (optional)"
+                          value={newTask.description}
+                          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                        />
+                        <Select
+                          value={newTask.priority}
+                          onValueChange={(value: Task['priority']) => setNewTask({ ...newTask, priority: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Low Priority</SelectItem>
+                            <SelectItem value="medium">Medium Priority</SelectItem>
+                            <SelectItem value="high">High Priority</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={handleAddTask}
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          Create Task
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
             </div>
           </header>
         )}

@@ -1,25 +1,9 @@
 import { useState } from 'react';
-import { Plus, GripVertical, Trash2, Clock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { GripVertical, Trash2, Clock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Task, KanbanColumn } from '@/types/workspace';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 const columns: KanbanColumn[] = [
   { id: 'backlog', title: 'Backlog', color: 'primary' },
@@ -42,25 +26,8 @@ const priorityColors = {
 };
 
 export function KanbanBoard() {
-  const { tasks, addTask, updateTaskStatus, deleteTask } = useWorkspaceStore();
-  const [isOpen, setIsOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' as Task['priority'] });
+  const { tasks, updateTaskStatus, deleteTask } = useWorkspaceStore();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
-
-  const handleAddTask = () => {
-    if (newTask.title.trim()) {
-      addTask({
-        id: Date.now().toString(),
-        title: newTask.title,
-        description: newTask.description,
-        status: 'backlog',
-        priority: newTask.priority,
-        createdAt: new Date(),
-      });
-      setNewTask({ title: '', description: '', priority: 'medium' });
-      setIsOpen(false);
-    }
-  };
 
   const handleDragStart = (taskId: string) => {
     setDraggedTask(taskId);
@@ -157,58 +124,6 @@ export function KanbanBoard() {
                   </div>
                 ))}
               </div>
-
-              <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full mt-4 border border-dashed border-border hover:bg-muted/50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsOpen(true);
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Task
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-popover border-border">
-                  <DialogHeader>
-                    <DialogTitle>New Task</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <Input
-                      placeholder="Task title"
-                      value={newTask.title}
-                      onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                    />
-                    <Textarea
-                      placeholder="Description (optional)"
-                      value={newTask.description}
-                      onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                    />
-                    <Select
-                      value={newTask.priority}
-                      onValueChange={(value: Task['priority']) => setNewTask({ ...newTask, priority: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low Priority</SelectItem>
-                        <SelectItem value="medium">Medium Priority</SelectItem>
-                        <SelectItem value="high">High Priority</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      onClick={handleAddTask}
-                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      Create Task
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
           );
         })}

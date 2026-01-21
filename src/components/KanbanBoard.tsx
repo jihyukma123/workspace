@@ -60,7 +60,7 @@ export function KanbanBoard() {
 
   return (
     <div className="flex-1 p-6 overflow-x-auto scrollbar-thin h-full">
-      <div className="flex gap-4 min-w-[900px] h-full">
+      <div className="flex gap-4 w-[1200px] h-full">
         {columns.map((column) => {
           const Icon = columnIcons[column.id];
           const columnTasks = getColumnTasks(column.id);
@@ -69,7 +69,7 @@ export function KanbanBoard() {
             <div
               key={column.id}
               className={cn(
-                'flex-1 rounded-lg border border-border bg-kanban-column p-4 min-h-[500px] transition-all duration-200 flex flex-col',
+                'w-[280px] flex-none rounded-lg border border-border bg-kanban-column p-4 min-h-[500px] transition-all duration-200 flex flex-col',
                 draggedTask && 'border-dashed border-primary/50'
               )}
               onDragOver={handleDragOver}

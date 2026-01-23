@@ -1,7 +1,7 @@
 {
   "name": "workspace",
   "version": "1.0.0",
-  "description": "Electron app with React/Tailwind UI migrated from cyber-workspace",
+  "description": "Electron app with React/Tailwind UI",
   "main": "main.js",
   "type": "module",
   "scripts": {

@@ -4,7 +4,7 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
 import { useWorkspaceStore } from "@/store/workspaceStore";
-import { Search, Filter, Plus } from "lucide-react";
+import { Filter, Plus } from "lucide-react";
 import { Task } from "@/types/workspace";
 import {
   Dialog,
@@ -87,16 +87,6 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-64 h-9 pl-9 pr-4 rounded-lg bg-muted/50 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-                />
-              </div>
-              
               {/* Filter */}
               <button className="h-9 px-3 flex items-center gap-2 rounded-lg border border-border hover:bg-muted transition-colors">
                 <Filter className="w-4 h-4 text-muted-foreground" />

@@ -16,6 +16,9 @@ const App = () => (
       <HashRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/wiki" element={<Index />} />
+          <Route path="/memo" element={<Index />} />
+          <Route path="/issues" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

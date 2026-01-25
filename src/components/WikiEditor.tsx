@@ -62,7 +62,7 @@ export function WikiEditor() {
 
   const handleSave = () => {
     if (selectedPageId) {
-      updateWikiPage(selectedPageId, {
+      void updateWikiPage(selectedPageId, {
         title: editTitle.trim() || 'Untitled',
         content: editContent,
       });
@@ -76,7 +76,7 @@ export function WikiEditor() {
     setEditTitle('');
   };
 
-  const handleAddPage = () => {
+  const handleAddPage = async () => {
     if (!selectedProjectId) {
       return;
     }
@@ -92,15 +92,17 @@ export function WikiEditor() {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      addWikiPage(newPage);
-      setSelectedPageId(newPage.id);
-      setNewPageTitle('');
-      setIsAddOpen(false);
+      const created = await addWikiPage(newPage);
+      if (created) {
+        setSelectedPageId(created.id);
+        setNewPageTitle('');
+        setIsAddOpen(false);
+      }
     }
   };
 
   const handleDelete = (pageId: string) => {
-    deleteWikiPage(pageId);
+    void deleteWikiPage(pageId);
     setSelectedPageId((current) => {
       if (current !== pageId) {
         return current;

@@ -19,17 +19,19 @@ export function ProjectSidebar() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
 
-  const handleAddProject = () => {
+  const handleAddProject = async () => {
     if (newProjectName.trim()) {
-      addProject({
+      const created = await addProject({
         id: Date.now().toString(),
         name: newProjectName,
         description: newProjectDesc,
         createdAt: new Date(),
       });
-      setNewProjectName('');
-      setNewProjectDesc('');
-      setIsOpen(false);
+      if (created) {
+        setNewProjectName('');
+        setNewProjectDesc('');
+        setIsOpen(false);
+      }
     }
   };
 
@@ -94,7 +96,7 @@ export function ProjectSidebar() {
             <Button
               key={project.id}
               type="button"
-              onClick={() => setSelectedProject(project.id)}
+              onClick={() => void setSelectedProject(project.id)}
               className={cn(
                 'w-full h-auto justify-start gap-2 px-3 py-2.5 rounded-lg text-left',
                 'hover:bg-sidebar-accent group',

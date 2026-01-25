@@ -51,17 +51,19 @@ export function AppSidebar() {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
-  const handleAddProject = () => {
+  const handleAddProject = async () => {
     if (newProjectName.trim()) {
-      addProject({
+      const created = await addProject({
         id: Date.now().toString(),
         name: newProjectName,
         description: newProjectDesc,
         createdAt: new Date(),
       });
-      setNewProjectName("");
-      setNewProjectDesc("");
-      setIsOpen(false);
+      if (created) {
+        setNewProjectName("");
+        setNewProjectDesc("");
+        setIsOpen(false);
+      }
     }
   };
 
@@ -147,7 +149,7 @@ export function AppSidebar() {
             {projects.map((project) => (
               <DropdownMenuItem
                 key={project.id}
-                onClick={() => setSelectedProject(project.id)}
+                onClick={() => void setSelectedProject(project.id)}
                 className="flex items-center justify-between cursor-pointer"
               >
                 <div className="flex items-center gap-3">

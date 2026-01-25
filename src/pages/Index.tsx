@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
-  const { activeTab, selectedProjectId, projects, addTask, addIssue, setActiveTab } = useWorkspaceStore();
+  const { activeTab, selectedProjectId, projects, addTask, addIssue, setActiveTab, hydrate, isHydrated } = useWorkspaceStore();
   const location = useLocation();
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
@@ -39,27 +39,31 @@ const Index = () => {
     status: 'todo' as Issue['status'],
   });
 
-  const handleAddTask = () => {
-    if (newTask.title.trim()) {
-      addTask({
-        id: Date.now().toString(),
-        title: newTask.title,
-        description: newTask.description,
-        status: 'backlog',
-        priority: newTask.priority,
-        createdAt: new Date(),
-      });
+  const handleAddTask = async () => {
+    if (!selectedProjectId || !newTask.title.trim()) {
+      return;
+    }
+    const created = await addTask({
+      id: Date.now().toString(),
+      projectId: selectedProjectId,
+      title: newTask.title,
+      description: newTask.description,
+      status: 'backlog',
+      priority: newTask.priority,
+      createdAt: new Date(),
+    });
+    if (created) {
       setNewTask({ title: '', description: '', priority: 'medium' });
       setIsTaskDialogOpen(false);
     }
   };
 
-  const handleAddIssue = () => {
+  const handleAddIssue = async () => {
     if (!selectedProjectId || !newIssue.title.trim()) {
       return;
     }
 
-    addIssue({
+    const created = await addIssue({
       id: Date.now().toString(),
       projectId: selectedProjectId,
       title: newIssue.title,
@@ -69,8 +73,10 @@ const Index = () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    setNewIssue({ title: '', description: '', priority: 'medium', status: 'todo' });
-    setIsIssueDialogOpen(false);
+    if (created) {
+      setNewIssue({ title: '', description: '', priority: 'medium', status: 'todo' });
+      setIsIssueDialogOpen(false);
+    }
   };
 
   const renderContent = () => {
@@ -122,6 +128,12 @@ const Index = () => {
         break;
     }
   }, [location.pathname, setActiveTab]);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      void hydrate();
+    }
+  }, [hydrate, isHydrated]);
 
   return (
     <MainLayout>

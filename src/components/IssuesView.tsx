@@ -89,7 +89,7 @@ export function IssuesView({ onAddIssue }: IssuesViewProps) {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                  onClick={() => deleteIssue(issue.id)}
+                  onClick={() => void deleteIssue(issue.id)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>

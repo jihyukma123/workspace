@@ -37,7 +37,7 @@ export function KanbanBoard() {
 
   const handleDrop = (columnId: Task['status']) => {
     if (draggedTask) {
-      updateTaskStatus(draggedTask, columnId);
+      void updateTaskStatus(draggedTask, columnId);
       setDraggedTask(null);
     }
   };
@@ -114,7 +114,7 @@ export function KanbanBoard() {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteTask(task.id)}
+                        onClick={() => void deleteTask(task.id)}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>

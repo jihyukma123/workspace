@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const columns: KanbanColumn[] = [
-  { id: 'backlog', title: 'Backlog', color: 'primary' },
-  { id: 'in-progress', title: 'In Progress', color: 'secondary' },
+  { id: 'backlog', title: 'Backlog', color: 'secondary' },
+  { id: 'in-progress', title: 'In Progress', color: 'warning' },
   { id: 'done', title: 'Done', color: 'success' },
 ];
 
@@ -49,16 +49,36 @@ export function KanbanBoard() {
   const getHeaderColorClass = (color: KanbanColumn['color']) => {
     const colorMap = {
       primary: 'text-primary',
-      secondary: 'text-secondary',
+      secondary: 'text-status-todo',
       warning: 'text-status-progress',
       success: 'text-status-done',
     };
     return colorMap[color];
   };
 
+  const getColumnBorderClass = (color: KanbanColumn['color']) => {
+    const colorMap = {
+      primary: 'border-primary/40 hover:border-primary/60',
+      secondary: 'border-status-todo/40 hover:border-status-todo/60',
+      warning: 'border-status-progress/40 hover:border-status-progress/60',
+      success: 'border-status-done/40 hover:border-status-done/60',
+    };
+    return colorMap[color];
+  };
+
+  const getHeaderBorderClass = (color: KanbanColumn['color']) => {
+    const colorMap = {
+      primary: 'border-primary/30',
+      secondary: 'border-status-todo/30',
+      warning: 'border-status-progress/30',
+      success: 'border-status-done/30',
+    };
+    return colorMap[color];
+  };
+
   return (
     <div className="flex-1 p-6 overflow-x-auto scrollbar-thin h-full">
-      <div className="flex gap-4 w-[1200px] h-full">
+      <div className="flex gap-4 w-full min-w-[840px] h-full">
         {columns.map((column) => {
           const Icon = columnIcons[column.id];
           const columnTasks = getColumnTasks(column.id);
@@ -67,13 +87,19 @@ export function KanbanBoard() {
             <div
               key={column.id}
               className={cn(
-                'w-[280px] flex-none rounded-lg border border-border bg-kanban-column p-4 min-h-[500px] transition-all duration-200 flex flex-col',
+                'min-w-[260px] flex-1 rounded-lg border bg-kanban-column p-4 min-h-[500px] transition-all duration-200 flex flex-col',
+                getColumnBorderClass(column.color),
                 draggedTask && 'border-dashed border-primary/50'
               )}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(column.id)}
             >
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border/50">
+              <div
+                className={cn(
+                  'flex items-center gap-2 mb-4 pb-3 border-b',
+                  getHeaderBorderClass(column.color)
+                )}
+              >
                 <Icon className={cn('w-4 h-4', getHeaderColorClass(column.color))} />
                 <h4 className={cn('font-semibold text-sm', getHeaderColorClass(column.color))}>
                   {column.title}

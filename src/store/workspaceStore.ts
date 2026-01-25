@@ -211,6 +211,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       projects: [...state.projects, created],
       selectedProjectId: state.selectedProjectId ?? created.id,
     }));
+    const seedTaskResult = await api.tasks.create({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      projectId: created.id,
+      title: 'Test task',
+      description: '',
+      status: 'backlog',
+      priority: 'medium',
+      createdAt: Date.now(),
+    });
+    if (!seedTaskResult.ok) {
+      reportError(seedTaskResult, 'tasks:create');
+    }
     if (!hadSelection) {
       await get().setSelectedProject(created.id);
     }

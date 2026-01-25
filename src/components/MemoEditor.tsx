@@ -63,7 +63,7 @@ export function MemoEditor() {
       return;
     }
     const timer = setTimeout(() => {
-      saveMemo(activeMemo.id, activeMemo.content);
+      void saveMemo(activeMemo.id, activeMemo.content);
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -100,12 +100,12 @@ export function MemoEditor() {
     !activeMemo && 'bg-muted'
   );
 
-  const handleAddMemo = () => {
+  const handleAddMemo = async () => {
     if (!selectedProjectId) {
       return;
     }
     const now = new Date();
-    addMemo({
+    const created = await addMemo({
       id: `memo-${now.getTime()}`,
       projectId: selectedProjectId,
       title: 'Untitled Memo',
@@ -115,6 +115,9 @@ export function MemoEditor() {
       updatedAt: null,
       status: 'unsaved',
     });
+    if (!created) {
+      return;
+    }
   };
 
   const handleEdit = () => {
@@ -148,7 +151,7 @@ export function MemoEditor() {
     if (!activeMemo) {
       return;
     }
-    saveMemo(activeMemo.id, activeMemo.content);
+    void saveMemo(activeMemo.id, activeMemo.content);
     setIsEditing(false);
     setEditSnapshot(null);
   };
@@ -190,25 +193,39 @@ export function MemoEditor() {
                       type="button"
                       onClick={() => handleSelectMemo(memo.id)}
                       className={cn(
-                        'w-full h-auto items-start justify-start text-left rounded-lg px-3 py-2',
+                        'w-full h-auto items-start justify-start text-left rounded-lg px-3 py-2 transition-all duration-200',
                         isActive
                           ? 'border-primary bg-accent/20'
-                          : 'border-border bg-background'
+                          : 'border-border bg-background hover:bg-accent/30'
                       )}
                       variant="outline"
                       size="sm"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm text-foreground">
-                          {memo.title || 'Untitled Memo'}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatTime(memo.updatedAt ?? memo.createdAt)}
-                        </span>
+                      <div className="w-full space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-mono text-sm text-foreground line-clamp-1">
+                            {memo.title || 'Untitled Memo'}
+                          </span>
+                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                            {formatTime(memo.updatedAt ?? memo.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span className="rounded-full bg-muted px-2 py-0.5 font-mono">
+                            {memo.status === 'saved'
+                              ? 'Saved'
+                              : memo.status === 'saving'
+                              ? 'Saving'
+                              : 'Unsaved'}
+                          </span>
+                          <span className="line-clamp-1">
+                            {memo.updatedAt ? 'Updated' : 'Created'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {memo.content || 'No content yet'}
+                        </p>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                        {memo.content || 'No content yet'}
-                      </p>
                     </Button>
                   );
                 })}
@@ -218,9 +235,9 @@ export function MemoEditor() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 lg:mb-2">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <StickyNote className="w-5 h-5 text-primary" />
@@ -278,14 +295,19 @@ export function MemoEditor() {
         </div>
 
         {/* Status indicator */}
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 lg:mb-2 flex items-center gap-2">
           <span className={statusDotClass} />
           <span className="text-xs text-muted-foreground">{statusCopy}</span>
         </div>
 
         {/* Editor */}
-        <div className="flex-1 relative">
-          <div className="absolute inset-0 rounded-lg border border-border overflow-hidden">
+        <div className={cn("flex-1 relative min-h-0", "lg:min-h-[560px]")}>
+          <div
+            className={cn(
+              "absolute inset-0 rounded-lg border border-border overflow-hidden",
+              "lg:shadow-sm"
+            )}
+          >
             {isEditing ? (
               <Textarea
                 value={activeMemo?.content ?? ''}
@@ -303,16 +325,19 @@ You can use Markdown:
 - [ ] Todo items
 **Bold text**"
                 disabled={!activeMemo}
-                className="h-full w-full resize-none text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 scrollbar-thin"
+                className={cn(
+                  "h-full w-full resize-none text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 scrollbar-thin",
+                  "lg:text-base lg:leading-7"
+                )}
               />
             ) : (
               <div className="h-full w-full overflow-y-auto p-4 scrollbar-thin">
                 {activeMemo?.content?.trim() ? (
-                  <div className="prose dark:prose-invert max-w-none">
+                  <div className="prose dark:prose-invert max-w-none lg:prose-lg">
                     {renderMarkdown(activeMemo.content)}
                   </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground lg:text-base lg:leading-7">
                     No content yet. Click Edit to add your notes.
                   </div>
                 )}
@@ -322,7 +347,7 @@ You can use Markdown:
         </div>
 
         {/* Tips */}
-        <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border">
+        <div className="mt-4 lg:mt-2 p-3 rounded-lg bg-muted/30 border border-border">
           <p className="text-xs text-muted-foreground">
             <span className="text-primary font-medium">TIP:</span> Edits auto-save after 2
             seconds of inactivity. Use Markdown syntax for formatting.

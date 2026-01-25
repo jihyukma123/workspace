@@ -8,6 +8,7 @@ yarn-error.log*
 dist/
 build/
 *.log
+agent_work_logs/
 
 # OS files
 .DS_Store
@@ -24,4 +25,3 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
-

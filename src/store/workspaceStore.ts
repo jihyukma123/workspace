@@ -1,5 +1,13 @@
 import { create } from 'zustand';
 import { Project, Task, WikiPage, MemoState, Issue, Memo } from '@/types/workspace';
+import {
+  IssueRecord,
+  MemoRecord,
+  ProjectRecord,
+  Result,
+  TaskRecord,
+  WikiPageRecord,
+} from '@/types/ipc';
 
 interface WorkspaceState extends MemoState {
   projects: Project[];
@@ -8,179 +16,402 @@ interface WorkspaceState extends MemoState {
   issues: Issue[];
   wikiPages: WikiPage[];
   activeTab: 'kanban' | 'wiki' | 'memo' | 'issues';
-  
+  isHydrated: boolean;
+
   // Actions
-  setSelectedProject: (id: string | null) => void;
+  hydrate: () => Promise<void>;
+  setSelectedProject: (id: string | null) => Promise<void>;
   setActiveTab: (tab: 'kanban' | 'wiki' | 'memo' | 'issues') => void;
-  addProject: (project: Project) => void;
-  addTask: (task: Task) => void;
-  updateTaskStatus: (taskId: string, status: Task['status']) => void;
-  deleteTask: (taskId: string) => void;
-  addIssue: (issue: Issue) => void;
-  updateIssueStatus: (issueId: string, status: Issue['status']) => void;
-  deleteIssue: (issueId: string) => void;
-  addWikiPage: (page: WikiPage) => void;
+  addProject: (project: Project) => Promise<Project | null>;
+  addTask: (task: Task) => Promise<Task | null>;
+  updateTaskStatus: (taskId: string, status: Task['status']) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  addIssue: (issue: Issue) => Promise<Issue | null>;
+  updateIssueStatus: (issueId: string, status: Issue['status']) => Promise<void>;
+  deleteIssue: (issueId: string) => Promise<void>;
+  addWikiPage: (page: WikiPage) => Promise<WikiPage | null>;
   updateWikiPage: (
     pageId: string,
     updates: Pick<WikiPage, 'title' | 'content'>
-  ) => void;
-  deleteWikiPage: (pageId: string) => void;
+  ) => Promise<void>;
+  deleteWikiPage: (pageId: string) => Promise<void>;
   setSelectedMemoId: (id: string | null) => void;
-  addMemo: (memo: Memo) => void;
+  addMemo: (memo: Memo) => Promise<Memo | null>;
   updateMemoDraft: (memoId: string, content: string) => void;
-  saveMemo: (memoId: string, content: string) => void;
+  saveMemo: (memoId: string, content: string) => Promise<void>;
   revertMemo: (
     memoId: string,
     snapshot: Pick<Memo, 'content' | 'updatedAt' | 'status'>
   ) => void;
 }
 
-// Initial demo data
-const initialProjects: Project[] = [
-  { id: '1', name: 'Project Alpha', description: 'Main development project', createdAt: new Date() },
-  { id: '2', name: 'Project Beta', description: 'Research and development', createdAt: new Date() },
-  { id: '3', name: 'Project Gamma', description: 'Client deliverables', createdAt: new Date() },
-];
+const mapProject = (record: ProjectRecord): Project => ({
+  id: record.id,
+  name: record.name,
+  description: record.description,
+  createdAt: new Date(record.createdAt),
+});
 
-const initialTasks: Task[] = [
-  { id: '1', title: 'Setup development environment', description: 'Configure all tools and dependencies', status: 'done', priority: 'high', createdAt: new Date() },
-  { id: '2', title: 'Design system architecture', description: 'Create the overall system design', status: 'in-progress', priority: 'high', createdAt: new Date() },
-  { id: '3', title: 'Implement authentication', description: 'Add user login and registration', status: 'done', priority: 'medium', createdAt: new Date() },
-  { id: '4', title: 'Create API endpoints', description: 'Build REST API for the application', status: 'backlog', priority: 'medium', createdAt: new Date() },
-  { id: '5', title: 'Write unit tests', description: 'Add comprehensive test coverage', status: 'backlog', priority: 'low', createdAt: new Date() },
-  { id: '6', title: 'Database optimization', description: 'Improve query performance', status: 'in-progress', priority: 'medium', createdAt: new Date() },
-];
+const mapTask = (record: TaskRecord): Task => ({
+  id: record.id,
+  projectId: record.projectId,
+  title: record.title,
+  description: record.description,
+  status: record.status,
+  priority: record.priority,
+  createdAt: new Date(record.createdAt),
+  updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
+  position: record.position,
+});
 
-const initialIssues: Issue[] = [
-  {
-    id: '101',
-    projectId: '1',
-    title: 'Login form validation missing',
-    description: 'The login form accepts empty fields without showing errors.',
-    status: 'todo',
-    priority: 'high',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '102',
-    projectId: '1',
-    title: 'Slow dashboard load',
-    description: 'Dashboard takes too long to render after initial fetch.',
-    status: 'in-progress',
-    priority: 'medium',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '103',
-    projectId: '2',
-    title: 'Update typography scale',
-    description: 'Adjust headings to match the updated design system.',
-    status: 'done',
-    priority: 'low',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+const mapIssue = (record: IssueRecord): Issue => ({
+  id: record.id,
+  projectId: record.projectId,
+  title: record.title,
+  description: record.description,
+  status: record.status,
+  priority: record.priority,
+  createdAt: new Date(record.createdAt),
+  updatedAt: new Date(record.updatedAt),
+});
 
-const initialWikiPages: WikiPage[] = [
-  {
-    id: '1',
-    projectId: '1',
-    title: 'Getting Started',
-    content: '# Getting Started\n\nWelcome to the project wiki. This is your central knowledge base.\n\n## Quick Links\n- Setup Guide\n- Architecture Overview\n- API Documentation',
-    parentId: null,
-    children: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    projectId: '1',
-    title: 'Architecture',
-    content: '# Architecture Overview\n\n## System Components\n\n- **Frontend**: React + TypeScript\n- **Backend**: Node.js\n- **Database**: PostgreSQL\n\n## Data Flow\n\nDescribe how data flows through your system...',
-    parentId: null,
-    children: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+const mapWikiPage = (record: WikiPageRecord): WikiPage => ({
+  id: record.id,
+  projectId: record.projectId,
+  title: record.title,
+  content: record.content,
+  parentId: record.parentId,
+  children: [],
+  createdAt: new Date(record.createdAt),
+  updatedAt: new Date(record.updatedAt),
+  position: record.position,
+});
 
-const initialMemos: Memo[] = [
-  {
-    id: 'm1',
-    projectId: '1',
-    title: 'Quick Notes',
-    content: '# Quick Notes\n\nUse this space for quick thoughts and ideas...\n\n- [ ] Review PR #42\n- [ ] Schedule team sync\n- [ ] Update documentation',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    status: 'saved',
-  },
-];
+const mapMemo = (record: MemoRecord): Memo => ({
+  id: record.id,
+  projectId: record.projectId,
+  title: record.title,
+  content: record.content,
+  createdAt: new Date(record.createdAt),
+  updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
+  status: 'saved',
+});
 
-export const useWorkspaceStore = create<WorkspaceState>((set) => ({
-  projects: initialProjects,
-  selectedProjectId: '1',
-  tasks: initialTasks,
-  issues: initialIssues,
-  wikiPages: initialWikiPages,
-  memos: initialMemos,
-  selectedMemoId: initialMemos[0]?.id ?? null,
+const reportError = (result: Result<unknown>, context: string) => {
+  if (!result.ok) {
+    console.error(`[workspaceApi] ${context}:`, result.error);
+  }
+};
+
+const ensureApi = () => {
+  if (!window.workspaceApi) {
+    console.warn('[workspaceApi] preload bridge unavailable');
+    return null;
+  }
+  return window.workspaceApi;
+};
+
+export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
+  projects: [],
+  selectedProjectId: null,
+  tasks: [],
+  issues: [],
+  wikiPages: [],
+  memos: [],
+  selectedMemoId: null,
   activeTab: 'kanban',
+  isHydrated: false,
 
-  setSelectedProject: (id) => set((state) => {
-    const nextMemo = state.memos.find((memo) => memo.projectId === id);
-    return { selectedProjectId: id, selectedMemoId: nextMemo?.id ?? null };
-  }),
+  hydrate: async () => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.projects.list();
+    if (!result.ok) {
+      reportError(result, 'projects:list');
+      return;
+    }
+    const projects = result.data.map(mapProject);
+    const nextProjectId = projects[0]?.id ?? null;
+    set({ projects, selectedProjectId: nextProjectId, isHydrated: true });
+    if (nextProjectId) {
+      await get().setSelectedProject(nextProjectId);
+    }
+  },
+
+  setSelectedProject: async (id) => {
+    const api = ensureApi();
+    if (!api) {
+      set({ selectedProjectId: id, tasks: [], issues: [], wikiPages: [], memos: [], selectedMemoId: null });
+      return;
+    }
+    if (!id) {
+      set({ selectedProjectId: null, tasks: [], issues: [], wikiPages: [], memos: [], selectedMemoId: null });
+      return;
+    }
+
+    const [tasksResult, issuesResult, wikiResult, memoResult] = await Promise.all([
+      api.tasks.list({ projectId: id }),
+      api.issues.list({ projectId: id }),
+      api.wiki.list({ projectId: id }),
+      api.memos.list({ projectId: id }),
+    ]);
+
+    if (!tasksResult.ok) {
+      reportError(tasksResult, 'tasks:list');
+    }
+    if (!issuesResult.ok) {
+      reportError(issuesResult, 'issues:list');
+    }
+    if (!wikiResult.ok) {
+      reportError(wikiResult, 'wiki:list');
+    }
+    if (!memoResult.ok) {
+      reportError(memoResult, 'memos:list');
+    }
+
+    const tasks = tasksResult.ok ? tasksResult.data.map(mapTask) : [];
+    const issues = issuesResult.ok ? issuesResult.data.map(mapIssue) : [];
+    const wikiPages = wikiResult.ok ? wikiResult.data.map(mapWikiPage) : [];
+    const memos = memoResult.ok ? memoResult.data.map(mapMemo) : [];
+    const nextMemoId = memos[0]?.id ?? null;
+
+    set({
+      selectedProjectId: id,
+      tasks,
+      issues,
+      wikiPages,
+      memos,
+      selectedMemoId: nextMemoId,
+    });
+  },
+
   setActiveTab: (tab) => set({ activeTab: tab }),
-  
-  addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
-  
-  addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
-  
-  updateTaskStatus: (taskId, status) => set((state) => ({
-    tasks: state.tasks.map((task) => 
-      task.id === taskId ? { ...task, status } : task
-    ),
-  })),
-  
-  deleteTask: (taskId) => set((state) => ({
-    tasks: state.tasks.filter((task) => task.id !== taskId),
-  })),
 
-  addIssue: (issue) => set((state) => ({ issues: [...state.issues, issue] })),
+  addProject: async (project) => {
+    const api = ensureApi();
+    if (!api) {
+      return null;
+    }
+    const hadSelection = get().selectedProjectId;
+    const payload: ProjectRecord = {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      createdAt: project.createdAt.getTime(),
+    };
+    const result = await api.projects.create(payload);
+    if (!result.ok) {
+      reportError(result, 'projects:create');
+      return null;
+    }
+    const created = mapProject(result.data);
+    set((state) => ({
+      projects: [...state.projects, created],
+      selectedProjectId: state.selectedProjectId ?? created.id,
+    }));
+    if (!hadSelection) {
+      await get().setSelectedProject(created.id);
+    }
+    return created;
+  },
 
-  updateIssueStatus: (issueId, status) => set((state) => ({
-    issues: state.issues.map((issue) =>
-      issue.id === issueId ? { ...issue, status, updatedAt: new Date() } : issue
-    ),
-  })),
+  addTask: async (task) => {
+    const api = ensureApi();
+    if (!api) {
+      return null;
+    }
+    const payload = {
+      id: task.id,
+      projectId: task.projectId,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      createdAt: task.createdAt.getTime(),
+      position: task.position ?? null,
+    };
+    const result = await api.tasks.create(payload);
+    if (!result.ok) {
+      reportError(result, 'tasks:create');
+      return null;
+    }
+    const created = mapTask(result.data);
+    set((state) => ({ tasks: [...state.tasks, created] }));
+    return created;
+  },
 
-  deleteIssue: (issueId) => set((state) => ({
-    issues: state.issues.filter((issue) => issue.id !== issueId),
-  })),
-  
-  addWikiPage: (page) => set((state) => ({ wikiPages: [...state.wikiPages, page] })),
-  
-  updateWikiPage: (pageId, updates) => set((state) => ({
-    wikiPages: state.wikiPages.map((page) =>
-      page.id === pageId
-        ? { ...page, ...updates, updatedAt: new Date() }
-        : page
-    ),
-  })),
+  updateTaskStatus: async (taskId, status) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.tasks.update({ id: taskId, updates: { status } });
+    if (!result.ok) {
+      reportError(result, 'tasks:update');
+      return;
+    }
+    const updated = mapTask(result.data);
+    set((state) => ({
+      tasks: state.tasks.map((task) => (task.id === taskId ? updated : task)),
+    }));
+  },
 
-  deleteWikiPage: (pageId) => set((state) => ({
-    wikiPages: state.wikiPages.filter((page) => page.id !== pageId),
-  })),
+  deleteTask: async (taskId) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.tasks.delete({ id: taskId });
+    if (!result.ok) {
+      reportError(result, 'tasks:delete');
+      return;
+    }
+    set((state) => ({
+      tasks: state.tasks.filter((task) => task.id !== taskId),
+    }));
+  },
+
+  addIssue: async (issue) => {
+    const api = ensureApi();
+    if (!api) {
+      return null;
+    }
+    const payload: IssueRecord = {
+      id: issue.id,
+      projectId: issue.projectId,
+      title: issue.title,
+      description: issue.description,
+      status: issue.status,
+      priority: issue.priority,
+      createdAt: issue.createdAt.getTime(),
+      updatedAt: issue.updatedAt.getTime(),
+    };
+    const result = await api.issues.create(payload);
+    if (!result.ok) {
+      reportError(result, 'issues:create');
+      return null;
+    }
+    const created = mapIssue(result.data);
+    set((state) => ({ issues: [...state.issues, created] }));
+    return created;
+  },
+
+  updateIssueStatus: async (issueId, status) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.issues.update({ id: issueId, updates: { status } });
+    if (!result.ok) {
+      reportError(result, 'issues:update');
+      return;
+    }
+    const updated = mapIssue(result.data);
+    set((state) => ({
+      issues: state.issues.map((issue) => (issue.id === issueId ? updated : issue)),
+    }));
+  },
+
+  deleteIssue: async (issueId) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.issues.delete({ id: issueId });
+    if (!result.ok) {
+      reportError(result, 'issues:delete');
+      return;
+    }
+    set((state) => ({
+      issues: state.issues.filter((issue) => issue.id !== issueId),
+    }));
+  },
+
+  addWikiPage: async (page) => {
+    const api = ensureApi();
+    if (!api) {
+      return null;
+    }
+    const payload = {
+      id: page.id,
+      projectId: page.projectId,
+      title: page.title,
+      content: page.content,
+      parentId: page.parentId,
+      createdAt: page.createdAt.getTime(),
+      updatedAt: page.updatedAt.getTime(),
+      position: page.position ?? null,
+    };
+    const result = await api.wiki.create(payload);
+    if (!result.ok) {
+      reportError(result, 'wiki:create');
+      return null;
+    }
+    const created = mapWikiPage(result.data);
+    set((state) => ({ wikiPages: [...state.wikiPages, created] }));
+    return created;
+  },
+
+  updateWikiPage: async (pageId, updates) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.wiki.update({ id: pageId, updates });
+    if (!result.ok) {
+      reportError(result, 'wiki:update');
+      return;
+    }
+    const updated = mapWikiPage(result.data);
+    set((state) => ({
+      wikiPages: state.wikiPages.map((page) => (page.id === pageId ? updated : page)),
+    }));
+  },
+
+  deleteWikiPage: async (pageId) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.wiki.delete({ id: pageId });
+    if (!result.ok) {
+      reportError(result, 'wiki:delete');
+      return;
+    }
+    set((state) => ({
+      wikiPages: state.wikiPages.filter((page) => page.id !== pageId),
+    }));
+  },
 
   setSelectedMemoId: (id) => set({ selectedMemoId: id }),
 
-  addMemo: (memo) => set((state) => ({
-    memos: [...state.memos, memo],
-    selectedMemoId: memo.id,
-  })),
+  addMemo: async (memo) => {
+    const api = ensureApi();
+    if (!api) {
+      return null;
+    }
+    const payload: MemoRecord = {
+      id: memo.id,
+      projectId: memo.projectId,
+      title: memo.title,
+      content: memo.content,
+      createdAt: memo.createdAt.getTime(),
+      updatedAt: memo.updatedAt ? memo.updatedAt.getTime() : null,
+    };
+    const result = await api.memos.create(payload);
+    if (!result.ok) {
+      reportError(result, 'memos:create');
+      return null;
+    }
+    const created = mapMemo(result.data);
+    set((state) => ({
+      memos: [...state.memos, { ...created, status: memo.status }],
+      selectedMemoId: created.id,
+    }));
+    return created;
+  },
 
   updateMemoDraft: (memoId, content) => set((state) => ({
     memos: state.memos.map((memo) => {
@@ -194,30 +425,47 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     }),
   })),
 
-  saveMemo: (memoId, content) => {
-    const savedAt = new Date();
+  saveMemo: async (memoId, content) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const savingAt = new Date();
     set((state) => ({
       memos: state.memos.map((memo) =>
         memo.id === memoId ? { ...memo, status: 'saving' } : memo
       ),
     }));
-    setTimeout(() => {
+
+    const result = await api.memos.update({
+      id: memoId,
+      updates: { content, updatedAt: savingAt.getTime() },
+    });
+
+    if (!result.ok) {
+      reportError(result, 'memos:update');
       set((state) => ({
-        memos: state.memos.map((memo) => {
-          if (memo.id !== memoId) {
-            return memo;
-          }
-          if (memo.status !== 'saving') {
-            return memo;
-          }
-          if (memo.content !== content) {
-            return { ...memo, status: 'unsaved' };
-          }
-          return { ...memo, updatedAt: savedAt, status: 'saved' };
-        }),
+        memos: state.memos.map((memo) =>
+          memo.id === memoId ? { ...memo, status: 'unsaved' } : memo
+        ),
       }));
-    }, 300);
+      return;
+    }
+
+    const updated = mapMemo(result.data);
+    set((state) => ({
+      memos: state.memos.map((memo) => {
+        if (memo.id !== memoId) {
+          return memo;
+        }
+        if (memo.content !== content) {
+          return { ...memo, status: 'unsaved' };
+        }
+        return { ...memo, updatedAt: updated.updatedAt, status: 'saved' };
+      }),
+    }));
   },
+
   revertMemo: (memoId, snapshot) => set((state) => ({
     memos: state.memos.map((memo) =>
       memo.id === memoId

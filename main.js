@@ -1,6 +1,8 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { openDatabase } from './electron/db.js';
+import { registerIpcHandlers } from './electron/ipc.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,14 +10,16 @@ const __dirname = path.dirname(__filename);
 // Check if we're in development mode
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 const VITE_DEV_SERVER_URL = 'http://localhost:8080';
+let db = null;
 
 function createWindow () {
   const win = new BrowserWindow({
     width: 1280,
     height: 960,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs')
     }
   })
 
@@ -31,6 +35,8 @@ function createWindow () {
 }
 
 app.whenReady().then(() => {
+  db = openDatabase();
+  registerIpcHandlers(ipcMain, db);
   createWindow()
 
   app.on('activate', () => {
@@ -45,3 +51,10 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+app.on('before-quit', () => {
+  if (db) {
+    db.close();
+    db = null;
+  }
+});

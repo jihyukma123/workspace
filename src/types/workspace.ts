@@ -7,11 +7,14 @@ export interface Project {
 
 export interface Task {
   id: string;
+  projectId: string;
   title: string;
   description: string;
   status: 'backlog' | 'in-progress' | 'done';
   priority: 'low' | 'medium' | 'high';
   createdAt: Date;
+  updatedAt?: Date | null;
+  position?: number | null;
 }
 
 export interface Issue {
@@ -34,6 +37,7 @@ export interface WikiPage {
   children: WikiPage[];
   createdAt: Date;
   updatedAt: Date;
+  position?: number | null;
 }
 
 export type MemoStatus = 'saved' | 'unsaved' | 'saving';

@@ -14,8 +14,20 @@ export interface Task {
   createdAt: Date;
 }
 
+export interface Issue {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string;
+  status: 'todo' | 'in-progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface WikiPage {
   id: string;
+  projectId: string;
   title: string;
   content: string;
   parentId: string | null;
@@ -24,10 +36,21 @@ export interface WikiPage {
   updatedAt: Date;
 }
 
+export type MemoStatus = 'saved' | 'unsaved' | 'saving';
+
 export interface Memo {
   id: string;
+  projectId: string;
+  title: string;
   content: string;
-  updatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date | null;
+  status: MemoStatus;
+}
+
+export interface MemoState {
+  memos: Memo[];
+  selectedMemoId: string | null;
 }
 
 export type KanbanColumn = {

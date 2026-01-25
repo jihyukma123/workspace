@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
+import { IssuesView } from "@/components/IssuesView";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Search, Filter, Plus } from "lucide-react";
-import { Task } from "@/types/workspace";
+import { Issue, Task } from "@/types/workspace";
 import {
   Dialog,
   DialogContent,
@@ -24,10 +26,18 @@ import {
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
-  const { activeTab, selectedProjectId, projects, addTask } = useWorkspaceStore();
+  const { activeTab, selectedProjectId, projects, addTask, addIssue, setActiveTab } = useWorkspaceStore();
+  const location = useLocation();
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' as Task['priority'] });
+  const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
+  const [newIssue, setNewIssue] = useState({
+    title: '',
+    description: '',
+    priority: 'medium' as Issue['priority'],
+    status: 'todo' as Issue['status'],
+  });
 
   const handleAddTask = () => {
     if (newTask.title.trim()) {
@@ -42,6 +52,25 @@ const Index = () => {
       setNewTask({ title: '', description: '', priority: 'medium' });
       setIsTaskDialogOpen(false);
     }
+  };
+
+  const handleAddIssue = () => {
+    if (!selectedProjectId || !newIssue.title.trim()) {
+      return;
+    }
+
+    addIssue({
+      id: Date.now().toString(),
+      projectId: selectedProjectId,
+      title: newIssue.title,
+      description: newIssue.description,
+      status: newIssue.status,
+      priority: newIssue.priority,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    setNewIssue({ title: '', description: '', priority: 'medium', status: 'todo' });
+    setIsIssueDialogOpen(false);
   };
 
   const renderContent = () => {
@@ -70,10 +99,29 @@ const Index = () => {
         return <WikiEditor />;
       case 'memo':
         return <MemoEditor />;
+      case 'issues':
+        return <IssuesView onAddIssue={() => setIsIssueDialogOpen(true)} />;
       default:
         return <KanbanBoard />;
     }
   };
+
+  useEffect(() => {
+    switch (location.pathname) {
+      case "/wiki":
+        setActiveTab("wiki");
+        break;
+      case "/memo":
+        setActiveTab("memo");
+        break;
+      case "/issues":
+        setActiveTab("issues");
+        break;
+      default:
+        setActiveTab("kanban");
+        break;
+    }
+  }, [location.pathname, setActiveTab]);
 
   return (
     <MainLayout>
@@ -98,17 +146,18 @@ const Index = () => {
               </div>
               
               {/* Filter */}
-              <button className="h-9 px-3 flex items-center gap-2 rounded-lg border border-border hover:bg-muted transition-colors">
+              <Button variant="outline" size="sm" className="gap-2">
                 <Filter className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-foreground">Filter</span>
-              </button>
+              </Button>
               
               {/* Add Task */}
               {activeTab === 'kanban' && (
                 <>
                   <Button
                     onClick={() => setIsTaskDialogOpen(true)}
-                    className="h-9 px-4 flex items-center gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    size="sm"
+                    className="px-4"
                   >
                     <Plus className="w-4 h-4" />
                     <span className="text-sm font-medium">Add Task</span>
@@ -150,9 +199,80 @@ const Index = () => {
                         </Select>
                         <Button
                           onClick={handleAddTask}
-                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                          className="w-full"
                         >
                           Create Task
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
+
+              {/* Add Issue */}
+              {activeTab === 'issues' && (
+                <>
+                  <Button
+                    onClick={() => setIsIssueDialogOpen(true)}
+                    size="sm"
+                    className="px-4"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">Add Issue</span>
+                  </Button>
+                  <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
+                    <DialogContent className="bg-popover border-border">
+                      <DialogHeader>
+                        <DialogTitle>New Issue</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-4">
+                        <Input
+                          placeholder="Issue title"
+                          value={newIssue.title}
+                          onChange={(e) => setNewIssue({ ...newIssue, title: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleAddIssue();
+                            }
+                          }}
+                        />
+                        <Textarea
+                          placeholder="Description (optional)"
+                          value={newIssue.description}
+                          onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
+                        />
+                        <Select
+                          value={newIssue.status}
+                          onValueChange={(value: Issue['status']) => setNewIssue({ ...newIssue, status: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="todo">Todo</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="done">Done</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={newIssue.priority}
+                          onValueChange={(value: Issue['priority']) => setNewIssue({ ...newIssue, priority: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Low Priority</SelectItem>
+                            <SelectItem value="medium">Medium Priority</SelectItem>
+                            <SelectItem value="high">High Priority</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={handleAddIssue}
+                          className="w-full"
+                        >
+                          Create Issue
                         </Button>
                       </div>
                     </DialogContent>

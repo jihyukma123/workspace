@@ -1,8 +1,19 @@
-import { useState } from 'react';
-import { Plus, FileText, ChevronRight, Edit2, Save, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, FileText, ChevronRight, Edit2, Save, X, Trash2, Clock } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -13,27 +24,48 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { renderMarkdown } from '@/components/markdown/renderMarkdown';
 
 export function WikiEditor() {
-  const { wikiPages, addWikiPage, updateWikiPage } = useWorkspaceStore();
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(wikiPages[0]?.id || null);
+  const { selectedProjectId, wikiPages, addWikiPage, updateWikiPage, deleteWikiPage } = useWorkspaceStore();
+  const projectPages = useMemo(
+    () => wikiPages.filter((page) => page.projectId === selectedProjectId),
+    [wikiPages, selectedProjectId]
+  );
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(projectPages[0]?.id || null);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
+  const [editTitle, setEditTitle] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
 
-  const selectedPage = wikiPages.find((p) => p.id === selectedPageId);
+  const selectedPage = projectPages.find((p) => p.id === selectedPageId);
+
+  useEffect(() => {
+    if (!projectPages.length) {
+      setSelectedPageId(null);
+      return;
+    }
+
+    if (!selectedPageId || !projectPages.some((page) => page.id === selectedPageId)) {
+      setSelectedPageId(projectPages[0].id);
+    }
+  }, [projectPages, selectedPageId]);
 
   const handleEdit = () => {
     if (selectedPage) {
       setEditContent(selectedPage.content);
+      setEditTitle(selectedPage.title);
       setIsEditing(true);
     }
   };
 
   const handleSave = () => {
     if (selectedPageId) {
-      updateWikiPage(selectedPageId, editContent);
+      updateWikiPage(selectedPageId, {
+        title: editTitle.trim() || 'Untitled',
+        content: editContent,
+      });
       setIsEditing(false);
     }
   };
@@ -41,12 +73,18 @@ export function WikiEditor() {
   const handleCancel = () => {
     setIsEditing(false);
     setEditContent('');
+    setEditTitle('');
   };
 
   const handleAddPage = () => {
+    if (!selectedProjectId) {
+      return;
+    }
+
     if (newPageTitle.trim()) {
       const newPage = {
         id: Date.now().toString(),
+        projectId: selectedProjectId,
         title: newPageTitle,
         content: `# ${newPageTitle}\n\nStart writing your documentation here...`,
         parentId: null,
@@ -61,75 +99,20 @@ export function WikiEditor() {
     }
   };
 
-  // Simple markdown rendering
-  const renderMarkdown = (content: string) => {
-    const lines = content.split('\n');
-    return lines.map((line, index) => {
-      if (line.startsWith('# ')) {
-        return (
-          <h1 key={index} className="text-2xl font-semibold text-foreground mb-4">
-            {line.slice(2)}
-          </h1>
-        );
+  const handleDelete = (pageId: string) => {
+    deleteWikiPage(pageId);
+    setSelectedPageId((current) => {
+      if (current !== pageId) {
+        return current;
       }
-      if (line.startsWith('## ')) {
-        return (
-          <h2 key={index} className="text-xl font-semibold text-foreground mt-6 mb-3">
-            {line.slice(3)}
-          </h2>
-        );
-      }
-      if (line.startsWith('### ')) {
-        return (
-          <h3 key={index} className="text-lg font-medium text-foreground mt-4 mb-2">
-            {line.slice(4)}
-          </h3>
-        );
-      }
-      if (line.startsWith('- ')) {
-        return (
-          <li key={index} className="text-foreground ml-4 mb-1 list-disc">
-            {line.slice(2)}
-          </li>
-        );
-      }
-      if (line.startsWith('- [ ] ')) {
-        return (
-          <li key={index} className="text-foreground ml-4 mb-1 flex items-center gap-2">
-            <span className="w-4 h-4 border border-border rounded" />
-            {line.slice(6)}
-          </li>
-        );
-      }
-      if (line.startsWith('- [x] ')) {
-        return (
-          <li key={index} className="text-muted-foreground ml-4 mb-1 flex items-center gap-2 line-through">
-            <span className="w-4 h-4 border border-primary bg-primary/20 rounded flex items-center justify-center text-primary text-xs">
-              ✓
-            </span>
-            {line.slice(6)}
-          </li>
-        );
-      }
-      if (line.includes('**')) {
-        const parts = line.split('**');
-        return (
-          <p key={index} className="text-foreground mb-2">
-            {parts.map((part, i) => 
-              i % 2 === 1 ? <strong key={i} className="font-bold text-primary">{part}</strong> : part
-            )}
-          </p>
-        );
-      }
-      if (line.trim() === '') {
-        return <br key={index} />;
-      }
-      return (
-        <p key={index} className="text-foreground mb-2">
-          {line}
-        </p>
-      );
+      const remaining = projectPages.filter((page) => page.id !== pageId);
+      return remaining[0]?.id ?? null;
     });
+    setIsEditing(false);
+  };
+
+  const formatUpdatedAt = (date: Date) => {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   return (
@@ -137,8 +120,8 @@ export function WikiEditor() {
       {/* Sidebar */}
       <div className="w-64 border-r border-border bg-card/30 flex flex-col">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h3 className="font-mono text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Pages
+          <h3 className="font-mono text-sm font-semibold text-primary uppercase tracking-wider">
+            Wiki Pages
           </h3>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
@@ -159,10 +142,16 @@ export function WikiEditor() {
                   placeholder="Page title"
                   value={newPageTitle}
                   onChange={(e) => setNewPageTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddPage();
+                    }
+                  }}
                 />
                 <Button
                   onClick={handleAddPage}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="w-full"
                 >
                   Create Page
                 </Button>
@@ -171,33 +160,41 @@ export function WikiEditor() {
           </Dialog>
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 scrollbar-thin">
           <div className="p-2 space-y-1">
-            {wikiPages.map((page) => (
-              <button
-                key={page.id}
-                onClick={() => {
-                  setSelectedPageId(page.id);
-                  setIsEditing(false);
-                }}
-                className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all duration-200',
-                  'hover:bg-muted/50 group',
-                  selectedPageId === page.id
-                    ? 'bg-primary/10 border border-primary/30 text-primary'
-                    : 'text-foreground border border-transparent'
-                )}
-              >
-                <FileText className="w-4 h-4" />
-                <span className="truncate text-sm">{page.title}</span>
-                <ChevronRight
+            {projectPages.length ? (
+              projectPages.map((page) => (
+                <Button
+                  key={page.id}
+                  onClick={() => {
+                    setSelectedPageId(page.id);
+                    setIsEditing(false);
+                  }}
                   className={cn(
-                    'w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity',
-                    selectedPageId === page.id && 'opacity-100'
+                    'w-full h-auto justify-start gap-2 px-3 py-2 rounded-lg text-left',
+                    'group',
+                    selectedPageId === page.id
+                      ? 'bg-primary/10 border border-primary/30 text-primary'
+                      : 'text-foreground border border-transparent'
                   )}
-                />
-              </button>
-            ))}
+                  variant="outline"
+                  size="sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="truncate text-sm">{page.title}</span>
+                  <ChevronRight
+                    className={cn(
+                      'w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity',
+                      selectedPageId === page.id && 'opacity-100'
+                    )}
+                  />
+                </Button>
+              ))
+            ) : (
+              <div className="p-4 text-xs text-muted-foreground text-center">
+                No pages yet. Create your first wiki page.
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -207,7 +204,13 @@ export function WikiEditor() {
         {selectedPage ? (
           <>
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">{selectedPage.title}</h2>
+              <div>
+                <h2 className="font-mono text-lg font-bold text-primary">{selectedPage.title}</h2>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  <span>Updated {formatUpdatedAt(selectedPage.updatedAt)}</span>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 {isEditing ? (
                   <>
@@ -223,36 +226,71 @@ export function WikiEditor() {
                     <Button
                       size="sm"
                       onClick={handleSave}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       <Save className="w-4 h-4 mr-1" />
                       Save
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleEdit}
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    <Edit2 className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEdit}
+                      className="text-muted-foreground hover:text-primary"
+                    >
+                      <Edit2 className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-popover border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this page?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. The wiki page will be permanently removed.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(selectedPage.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
                 )}
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-6">
+            <ScrollArea className="flex-1 p-6 scrollbar-thin">
               {isEditing ? (
-                <Textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="min-h-[500px] text-sm resize-none"
-                  placeholder="Write your documentation in Markdown..."
-                />
+                <div className="space-y-4">
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="bg-input border-border focus-visible:ring-ring"
+                    placeholder="Page title"
+                  />
+                  <Textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[500px] text-sm resize-none bg-input border-border focus-visible:ring-ring"
+                    placeholder="Write your documentation in Markdown..."
+                  />
+                </div>
               ) : (
-                <div className="prose prose-invert max-w-none">
+                <div className="prose dark:prose-invert max-w-none">
                   {renderMarkdown(selectedPage.content)}
                 </div>
               )}
@@ -260,9 +298,20 @@ export function WikiEditor() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Select a page or create a new one</p>
+            <div className="text-center max-w-sm">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <FileText className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-mono text-lg font-bold text-primary mb-2">Your Wiki</h3>
+              <p className="text-sm mb-4">
+                Capture architecture, onboarding notes, and decisions in one place.
+              </p>
+              <Button
+                onClick={() => setIsAddOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Create Page
+              </Button>
             </div>
           </div>
         )}

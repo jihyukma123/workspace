@@ -21,6 +21,11 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "func-style": ["error", "declaration", { allowArrowFunctions: true }],
+      "indent": ["error", 2, { SwitchCase: 1 }],
+      "no-var": "error",
+      "prefer-const": "error",
+      "semi": ["error", "always"],
     },
   },
 );

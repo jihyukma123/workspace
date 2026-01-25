@@ -46,6 +46,7 @@
 4. Headers: `font-mono text-lg font-bold` with primary color.
 5. Cards: `rounded-lg border bg-card text-card-foreground shadow-sm`.
 6. Sidebar: Use `bg-sidebar`, `border-sidebar-border`, `text-sidebar-foreground`.
+7. Buttons: Use `secondary` for Edit actions and `destructive` for Delete actions.
 
 ## Constraints
 - NO hardcoded HSL/Hex. Use CSS variables via Tailwind classes.

@@ -43,6 +43,7 @@ interface WorkspaceState extends MemoState {
     memoId: string,
     snapshot: Pick<Memo, 'content' | 'updatedAt' | 'status'>
   ) => void;
+  deleteMemo: (memoId: string) => Promise<void>;
 }
 
 const mapProject = (record: ProjectRecord): Project => ({
@@ -490,4 +491,38 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         : memo
     ),
   })),
+
+  deleteMemo: async (memoId) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const state = get();
+    const memoToDelete = state.memos.find((memo) => memo.id === memoId);
+    const projectId = memoToDelete?.projectId ?? state.selectedProjectId;
+    const projectMemos = state.memos.filter((memo) => memo.projectId === projectId);
+    const memoIndex = projectMemos.findIndex((memo) => memo.id === memoId);
+    let nextSelectedMemoId = state.selectedMemoId;
+    if (memoIndex !== -1) {
+      if (projectMemos.length === 1) {
+        nextSelectedMemoId = null;
+      } else if (memoIndex > 0) {
+        nextSelectedMemoId = projectMemos[memoIndex - 1].id;
+      } else {
+        nextSelectedMemoId = projectMemos[1]?.id ?? null;
+      }
+    }
+
+    const result = await api.memos.delete({ id: memoId });
+    if (!result.ok) {
+      reportError(result, 'memos:delete');
+      return;
+    }
+
+    set((current) => ({
+      memos: current.memos.filter((memo) => memo.id !== memoId),
+      selectedMemoId:
+        current.selectedMemoId === memoId ? nextSelectedMemoId : current.selectedMemoId,
+    }));
+  },
 }));

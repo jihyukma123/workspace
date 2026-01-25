@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StickyNote, Save, Clock, Plus, Edit2, X } from 'lucide-react';
+import { StickyNote, Save, Clock, Plus, Edit2, X, Trash2 } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { renderMarkdown } from '@/components/markdown/renderMarkdown';
 import { MemoStatus } from '@/types/workspace';
@@ -24,6 +35,7 @@ export function MemoEditor() {
     updateMemoDraft,
     saveMemo,
     revertMemo,
+    deleteMemo,
   } = useWorkspaceStore();
 
   const projectMemos = useMemo(
@@ -109,8 +121,7 @@ export function MemoEditor() {
       id: `memo-${now.getTime()}`,
       projectId: selectedProjectId,
       title: 'Untitled Memo',
-      content:
-        '# Untitled Memo\n\nStart typing your notes here...\n\n- [ ] First thought\n- [ ] Next step',
+      content: '',
       createdAt: now,
       updatedAt: null,
       status: 'unsaved',
@@ -161,6 +172,16 @@ export function MemoEditor() {
       handleCancel();
     }
     setSelectedMemoId(memoId);
+  };
+
+  const handleDelete = async () => {
+    if (!activeMemo) {
+      return;
+    }
+    if (isEditing) {
+      handleCancel();
+    }
+    await deleteMemo(activeMemo.id);
   };
 
   return (
@@ -280,16 +301,46 @@ export function MemoEditor() {
                 </Button>
               </>
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleEdit}
-                disabled={!activeMemo}
-                className="text-muted-foreground hover:text-primary"
-              >
-                <Edit2 className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleEdit}
+                  disabled={!activeMemo}
+                >
+                  <Edit2 className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={!activeMemo}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-popover border-border">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this memo?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. The memo will be permanently removed.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className={buttonVariants({ variant: 'destructive' })}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
         </div>

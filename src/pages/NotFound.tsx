@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
   const location = useLocation();
@@ -16,12 +17,14 @@ const NotFound = () => {
         <div className="text-center">
           <h1 className="mb-4 text-4xl font-semibold text-foreground">404</h1>
           <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-          <button 
-            onClick={() => navigate("/")} 
-            className="text-primary hover:text-primary/90 underline"
+          <Button
+            onClick={() => navigate("/")}
+            variant="link"
+            size="sm"
+            className="h-auto px-0"
           >
             Return to Home
-          </button>
+          </Button>
         </div>
       </div>
     </MainLayout>

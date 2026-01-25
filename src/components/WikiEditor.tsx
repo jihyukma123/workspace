@@ -129,6 +129,7 @@ export function WikiEditor() {
                 <Button
                   size="sm"
                   className="gap-2"
+                  variant="primary"
                 >
                   <Plus className="h-4 w-4" />
                   New
@@ -153,6 +154,7 @@ export function WikiEditor() {
                   <Button
                     onClick={handleAddPage}
                     className="w-full"
+                    variant="primary"
                   >
                     Create Page
                   </Button>
@@ -216,10 +218,9 @@ export function WikiEditor() {
                 {isEditing ? (
                   <>
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="sm"
                       onClick={handleCancel}
-                      className="text-muted-foreground hover:text-foreground"
                     >
                       <X className="w-4 h-4 mr-1" />
                       Cancel
@@ -227,6 +228,7 @@ export function WikiEditor() {
                     <Button
                       size="sm"
                       onClick={handleSave}
+                      variant="primary"
                     >
                       <Save className="w-4 h-4 mr-1" />
                       Save
@@ -310,6 +312,7 @@ export function WikiEditor() {
               </p>
               <Button
                 onClick={() => setIsAddOpen(true)}
+                variant="primary"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Create Page

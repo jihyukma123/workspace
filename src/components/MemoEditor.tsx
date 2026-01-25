@@ -194,6 +194,7 @@ export function MemoEditor() {
               size="sm"
               onClick={handleAddMemo}
               disabled={!selectedProjectId}
+              variant="primary"
             >
               <Plus className="w-4 h-4 mr-2" />
               New
@@ -283,10 +284,9 @@ export function MemoEditor() {
             {isEditing ? (
               <>
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
                   onClick={handleCancel}
-                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-4 h-4 mr-1" />
                   Cancel
@@ -295,6 +295,7 @@ export function MemoEditor() {
                   onClick={handleSave}
                   disabled={!activeMemo || activeMemo.status !== 'unsaved'}
                   size="sm"
+                  variant="primary"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {saveButtonLabel}

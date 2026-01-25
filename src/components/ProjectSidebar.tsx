@@ -91,16 +91,19 @@ export function ProjectSidebar() {
 
         <div className="space-y-1">
           {projects.map((project) => (
-            <button
+            <Button
               key={project.id}
+              type="button"
               onClick={() => setSelectedProject(project.id)}
               className={cn(
-                'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all duration-200',
+                'w-full h-auto justify-start gap-2 px-3 py-2.5 rounded-lg text-left',
                 'hover:bg-sidebar-accent group',
                 selectedProjectId === project.id
                   ? 'bg-primary/10 border border-primary/30'
                   : 'border border-transparent'
               )}
+              variant="outline"
+              size="sm"
             >
               <ChevronRight
                 className={cn(
@@ -125,7 +128,7 @@ export function ProjectSidebar() {
                   {project.description}
                 </p>
               </div>
-            </button>
+            </Button>
           ))}
         </div>
       </div>

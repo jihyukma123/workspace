@@ -122,7 +122,10 @@ export function AppSidebar() {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-sidebar-accent hover:bg-sidebar-accent/80 transition-colors group">
+            <Button
+              variant="sidebar"
+              className="w-full h-auto justify-between px-3 py-2.5 rounded-lg group"
+            >
               <div className="flex items-center gap-3 min-w-0">
                 {selectedProject && (
                   <>
@@ -134,7 +137,7 @@ export function AppSidebar() {
                 )}
               </div>
               <ChevronDown className="w-4 h-4 text-sidebar-muted group-hover:text-sidebar-foreground transition-colors flex-shrink-0" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
             className="w-56 bg-popover border border-border shadow-lg" 
@@ -166,22 +169,24 @@ export function AppSidebar() {
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
-              <button
+              <Button
                 key={item.id}
                 onClick={() => navigate(item.path)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative",
+                  "w-full h-auto justify-start gap-3 px-3 py-2.5 rounded-lg relative",
                   isActive
                     ? "bg-sidebar-primary/10 text-sidebar-primary-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 )}
+                variant="sidebarNav"
+                size="sm"
               >
                 {isActive && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
                 )}
                 <item.icon className="w-4 h-4" />
                 <span>{item.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>

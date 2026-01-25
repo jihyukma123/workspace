@@ -1,6 +1,7 @@
 import { Kanban, BookOpen, StickyNote } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const tabs = [
   { id: 'kanban' as const, label: 'Kanban', icon: Kanban },
@@ -19,20 +20,19 @@ export function TabNavigation() {
           const isActive = activeTab === tab.id;
           
           return (
-            <button
+            <Button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all duration-150 relative',
-                'border-b-2',
-                isActive
-                  ? 'text-primary border-primary'
-                  : 'text-muted-foreground border-transparent hover:text-foreground hover:border-muted'
+                'h-auto gap-2 px-4 py-2.5',
+                isActive && 'text-primary border-primary'
               )}
+              variant="tab"
+              size="sm"
             >
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
-            </button>
+            </Button>
           );
         })}
       </div>

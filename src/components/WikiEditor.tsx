@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Plus, FileText, ChevronRight, Edit2, Save, X, Trash2, Clock } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -235,10 +235,9 @@ export function WikiEditor() {
                 ) : (
                   <>
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="sm"
                       onClick={handleEdit}
-                      className="text-muted-foreground hover:text-primary"
                     >
                       <Edit2 className="w-4 h-4 mr-1" />
                       Edit
@@ -246,9 +245,8 @@ export function WikiEditor() {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
-                          variant="ghost"
+                          variant="destructive"
                           size="sm"
-                          className="text-muted-foreground hover:text-destructive"
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
                           Delete
@@ -263,7 +261,10 @@ export function WikiEditor() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(selectedPage.id)}>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(selectedPage.id)}
+                            className={buttonVariants({ variant: 'destructive' })}
+                          >
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>

@@ -1,6 +1,17 @@
 import { AlertCircle, Calendar, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/store/workspaceStore";
@@ -85,14 +96,34 @@ export function IssuesView({ onAddIssue }: IssuesViewProps) {
                     {issue.title}
                   </h4>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => void deleteIssue(issue.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-popover border-border">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this issue?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. The issue will be permanently removed.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => void deleteIssue(issue.id)}
+                        className={buttonVariants({ variant: "destructive" })}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-0">

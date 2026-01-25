@@ -118,91 +118,90 @@ export function WikiEditor() {
   };
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex gap-6 p-6">
       {/* Sidebar */}
-      <div className="w-64 border-r border-border bg-card/30 flex flex-col">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h3 className="font-mono text-sm font-semibold text-primary uppercase tracking-wider">
-            Wiki Pages
-          </h3>
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-primary"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-popover border-border">
-              <DialogHeader>
-                <DialogTitle>New Wiki Page</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <Input
-                  placeholder="Page title"
-                  value={newPageTitle}
-                  onChange={(e) => setNewPageTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddPage();
-                    }
-                  }}
-                />
+      <div className="w-72 shrink-0">
+        <div className="rounded-lg border border-border bg-card text-card-foreground shadow-sm h-full flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h3 className="font-mono text-lg font-bold text-primary">Wiki</h3>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
                 <Button
-                  onClick={handleAddPage}
-                  className="w-full"
-                >
-                  Create Page
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <ScrollArea className="flex-1 scrollbar-thin">
-          <div className="p-2 space-y-1">
-            {projectPages.length ? (
-              projectPages.map((page) => (
-                <Button
-                  key={page.id}
-                  onClick={() => {
-                    setSelectedPageId(page.id);
-                    setIsEditing(false);
-                  }}
-                  className={cn(
-                    'w-full h-auto justify-start gap-2 px-3 py-2 rounded-lg text-left',
-                    'group',
-                    selectedPageId === page.id
-                      ? 'bg-primary/10 border border-primary/30 text-primary'
-                      : 'text-foreground border border-transparent'
-                  )}
-                  variant="outline"
                   size="sm"
+                  className="gap-2"
                 >
-                  <FileText className="w-4 h-4" />
-                  <span className="truncate text-sm">{page.title}</span>
-                  <ChevronRight
-                    className={cn(
-                      'w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity',
-                      selectedPageId === page.id && 'opacity-100'
-                    )}
-                  />
+                  <Plus className="h-4 w-4" />
+                  New
                 </Button>
-              ))
+              </DialogTrigger>
+              <DialogContent className="bg-popover border-border">
+                <DialogHeader>
+                  <DialogTitle>New Wiki Page</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <Input
+                    placeholder="Page title"
+                    value={newPageTitle}
+                    onChange={(e) => setNewPageTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddPage();
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={handleAddPage}
+                    className="w-full"
+                  >
+                    Create Page
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <ScrollArea className="flex-1 scrollbar-thin">
+            {projectPages.length ? (
+              <div className="p-2 space-y-2">
+                {projectPages.map((page) => (
+                  <Button
+                    key={page.id}
+                    onClick={() => {
+                      setSelectedPageId(page.id);
+                      setIsEditing(false);
+                    }}
+                    className={cn(
+                      'group w-full h-auto justify-start gap-2 px-3 py-2 rounded-lg text-left transition-all duration-200',
+                      selectedPageId === page.id
+                        ? 'border-primary bg-accent/20'
+                        : 'border-border bg-background hover:bg-accent/30'
+                    )}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="truncate text-sm">{page.title}</span>
+                    <ChevronRight
+                      className={cn(
+                        'w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity',
+                        selectedPageId === page.id && 'opacity-100'
+                      )}
+                    />
+                  </Button>
+                ))}
+              </div>
             ) : (
-              <div className="p-4 text-xs text-muted-foreground text-center">
+              <div className="p-4 text-sm text-muted-foreground">
                 No pages yet. Create your first wiki page.
               </div>
             )}
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {selectedPage ? (
           <>
             <div className="p-4 border-b border-border flex items-center justify-between">

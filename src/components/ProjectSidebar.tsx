@@ -63,7 +63,18 @@ export function ProjectSidebar() {
                 <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent
+              className="bg-card border-border"
+              onKeyDown={(e) => {
+                if (e.defaultPrevented) {
+                  return;
+                }
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleAddProject();
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle className="font-mono neon-text-cyan">New Project</DialogTitle>
               </DialogHeader>

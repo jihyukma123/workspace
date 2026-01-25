@@ -97,7 +97,18 @@ export function AppSidebar() {
                 <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-popover border-border">
+            <DialogContent
+              className="bg-popover border-border"
+              onKeyDown={(e) => {
+                if (e.defaultPrevented) {
+                  return;
+                }
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleAddProject();
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle>New Project</DialogTitle>
               </DialogHeader>

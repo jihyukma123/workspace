@@ -165,7 +165,18 @@ const Index = () => {
                     <span className="text-sm font-medium">Add Task</span>
                   </Button>
                   <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-                    <DialogContent className="bg-popover border-border">
+                  <DialogContent
+                    className="bg-popover border-border"
+                    onKeyDown={(e) => {
+                      if (e.defaultPrevented) {
+                        return;
+                      }
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddTask();
+                      }
+                    }}
+                  >
                       <DialogHeader>
                         <DialogTitle>New Task</DialogTitle>
                       </DialogHeader>
@@ -223,7 +234,18 @@ const Index = () => {
                     <span className="text-sm font-medium">Add Issue</span>
                   </Button>
                   <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
-                    <DialogContent className="bg-popover border-border">
+                    <DialogContent
+                      className="bg-popover border-border"
+                      onKeyDown={(e) => {
+                        if (e.defaultPrevented) {
+                          return;
+                        }
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleAddIssue();
+                        }
+                      }}
+                    >
                       <DialogHeader>
                         <DialogTitle>New Issue</DialogTitle>
                       </DialogHeader>
@@ -232,12 +254,6 @@ const Index = () => {
                           placeholder="Issue title"
                           value={newIssue.title}
                           onChange={(e) => setNewIssue({ ...newIssue, title: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleAddIssue();
-                            }
-                          }}
                         />
                         <Textarea
                           placeholder="Description (optional)"

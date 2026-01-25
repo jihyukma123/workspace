@@ -25,8 +25,7 @@ description: Orchestrate end-to-end feature development using subagents (spec, d
 - If Review Agent returns PASS, proceed to QA Agent.
 - One agent at a time; do not overlap agent runs.
 - Wait for agent completion and capture full output before moving on.
-- On timeout or missing output, retry up to 2 times with a shorter prompt that includes the last known context.
-- If output is still missing after retries, stop the workflow, report the failure, and ask the user how to proceed.
+- If output is missing or delayed, keep waiting and polling until the agent completes or an explicit failure is reported.
 - In the main chat response, include each agent's output (or a concise, faithful summary) before starting the next agent.
 
 ## Input Expectations

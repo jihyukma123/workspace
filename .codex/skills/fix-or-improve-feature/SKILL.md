@@ -49,4 +49,4 @@ Run a lightweight workflow for small changes: clarify requirements, implement, a
 ## Orchestration Rules
 - One agent at a time; pass the previous agent’s output forward.
 - Include each agent’s output (or concise summary) in the main response before proceeding.
-- On missing output, retry up to 2 times; then stop and report failure.
+- If output is missing or delayed, keep waiting and polling until the agent completes or an explicit failure is reported.

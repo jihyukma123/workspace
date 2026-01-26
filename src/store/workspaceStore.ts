@@ -99,7 +99,7 @@ const mapMemo = (record: MemoRecord): Memo => ({
 });
 
 const reportError = (result: Result<unknown>, context: string) => {
-  if (!result.ok) {
+  if (result.ok === false) {
     console.error(`[workspaceApi] ${context}:`, result.error);
   }
 };

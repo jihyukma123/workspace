@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { Project, Task, WikiPage, MemoState, Issue, Memo } from '@/types/workspace';
+import { Project, Task, WikiPage, MemoState, Issue, Memo, Reminder } from '@/types/workspace';
 import {
   IssueRecord,
   MemoRecord,
   ProjectRecord,
+  ReminderRecord,
   Result,
   TaskRecord,
   WikiPageRecord,
@@ -15,6 +16,7 @@ interface WorkspaceState extends MemoState {
   tasks: Task[];
   issues: Issue[];
   wikiPages: WikiPage[];
+  reminders: Reminder[];
   activeTab: 'kanban' | 'wiki' | 'memo' | 'issues';
   isHydrated: boolean;
 
@@ -45,6 +47,12 @@ interface WorkspaceState extends MemoState {
     snapshot: Pick<Memo, 'content' | 'updatedAt' | 'status'>
   ) => void;
   deleteMemo: (memoId: string) => Promise<void>;
+  addReminder: (reminder: Reminder) => Promise<Reminder | null>;
+  updateReminder: (
+    reminderId: string,
+    updates: Pick<Reminder, 'text' | 'status'>
+  ) => Promise<boolean>;
+  deleteReminder: (reminderId: string) => Promise<boolean>;
 }
 
 const mapProject = (record: ProjectRecord): Project => ({
@@ -99,6 +107,20 @@ const mapMemo = (record: MemoRecord): Memo => ({
   status: 'saved',
 });
 
+const mapReminder = (record: ReminderRecord): Reminder => ({
+  id: record.id,
+  projectId: record.projectId,
+  text: record.text,
+  status: record.status,
+  createdAt: new Date(record.createdAt),
+  updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
+});
+
+const getMemoTitleFromContent = (content: string) => {
+  const firstLine = content.split(/\r?\n/)[0]?.trim() ?? '';
+  return firstLine.length > 0 ? firstLine : 'Untitled Memo';
+};
+
 const reportError = (result: Result<unknown>, context: string) => {
   if (result.ok === false) {
     console.error(`[workspaceApi] ${context}:`, result.error);
@@ -119,6 +141,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   tasks: [],
   issues: [],
   wikiPages: [],
+  reminders: [],
   memos: [],
   selectedMemoId: null,
   activeTab: 'kanban',
@@ -145,19 +168,36 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setSelectedProject: async (id) => {
     const api = ensureApi();
     if (!api) {
-      set({ selectedProjectId: id, tasks: [], issues: [], wikiPages: [], memos: [], selectedMemoId: null });
+      set({
+        selectedProjectId: id,
+        tasks: [],
+        issues: [],
+        wikiPages: [],
+        reminders: [],
+        memos: [],
+        selectedMemoId: null,
+      });
       return;
     }
     if (!id) {
-      set({ selectedProjectId: null, tasks: [], issues: [], wikiPages: [], memos: [], selectedMemoId: null });
+      set({
+        selectedProjectId: null,
+        tasks: [],
+        issues: [],
+        wikiPages: [],
+        reminders: [],
+        memos: [],
+        selectedMemoId: null,
+      });
       return;
     }
 
-    const [tasksResult, issuesResult, wikiResult, memoResult] = await Promise.all([
+    const [tasksResult, issuesResult, wikiResult, memoResult, reminderResult] = await Promise.all([
       api.tasks.list({ projectId: id }),
       api.issues.list({ projectId: id }),
       api.wiki.list({ projectId: id }),
       api.memos.list({ projectId: id }),
+      api.reminders.list({ projectId: id }),
     ]);
 
     if (!tasksResult.ok) {
@@ -172,11 +212,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!memoResult.ok) {
       reportError(memoResult, 'memos:list');
     }
+    if (!reminderResult.ok) {
+      reportError(reminderResult, 'reminders:list');
+    }
 
     const tasks = tasksResult.ok ? tasksResult.data.map(mapTask) : [];
     const issues = issuesResult.ok ? issuesResult.data.map(mapIssue) : [];
     const wikiPages = wikiResult.ok ? wikiResult.data.map(mapWikiPage) : [];
     const memos = memoResult.ok ? memoResult.data.map(mapMemo) : [];
+    const reminders = reminderResult.ok ? reminderResult.data.map(mapReminder) : [];
     const nextMemoId = memos[0]?.id ?? null;
 
     set({
@@ -184,6 +228,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       tasks,
       issues,
       wikiPages,
+      reminders,
       memos,
       selectedMemoId: nextMemoId,
     });
@@ -468,7 +513,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       if (memo.content === content) {
         return memo;
       }
-      return { ...memo, content, status: 'unsaved' };
+      return {
+        ...memo,
+        content,
+        title: getMemoTitleFromContent(content),
+        status: 'unsaved',
+      };
     }),
   })),
 
@@ -477,6 +527,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!api) {
       return;
     }
+    const title = getMemoTitleFromContent(content);
     const savingAt = new Date();
     set((state) => ({
       memos: state.memos.map((memo) =>
@@ -486,7 +537,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const result = await api.memos.update({
       id: memoId,
-      updates: { content, updatedAt: savingAt.getTime() },
+      updates: { title, content, updatedAt: savingAt.getTime() },
     });
 
     if (!result.ok) {
@@ -508,7 +559,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         if (memo.content !== content) {
           return { ...memo, status: 'unsaved' };
         }
-        return { ...memo, updatedAt: updated.updatedAt, status: 'saved' };
+        return { ...memo, title, updatedAt: updated.updatedAt, status: 'saved' };
       }),
     }));
   },
@@ -519,6 +570,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         ? {
             ...memo,
             content: snapshot.content,
+            title: getMemoTitleFromContent(snapshot.content),
             updatedAt: snapshot.updatedAt,
             status: snapshot.status,
           }
@@ -558,5 +610,70 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       selectedMemoId:
         current.selectedMemoId === memoId ? nextSelectedMemoId : current.selectedMemoId,
     }));
+  },
+
+  addReminder: async (reminder) => {
+    const api = ensureApi();
+    if (!api) {
+      return null;
+    }
+    const payload: ReminderRecord = {
+      id: reminder.id,
+      projectId: reminder.projectId,
+      text: reminder.text,
+      status: reminder.status,
+      createdAt: reminder.createdAt.getTime(),
+      updatedAt: reminder.updatedAt ? reminder.updatedAt.getTime() : null,
+    };
+    const result = await api.reminders.create(payload);
+    if (!result.ok) {
+      reportError(result, 'reminders:create');
+      return null;
+    }
+    const created = mapReminder(result.data);
+    set((state) => ({ reminders: [...state.reminders, created] }));
+    return created;
+  },
+
+  updateReminder: async (reminderId, updates) => {
+    const api = ensureApi();
+    if (!api) {
+      return false;
+    }
+    const result = await api.reminders.update({
+      id: reminderId,
+      updates: {
+        text: updates.text,
+        status: updates.status,
+        updatedAt: Date.now(),
+      },
+    });
+    if (!result.ok) {
+      reportError(result, 'reminders:update');
+      return false;
+    }
+    const updated = mapReminder(result.data);
+    set((state) => ({
+      reminders: state.reminders.map((reminder) =>
+        reminder.id === reminderId ? updated : reminder
+      ),
+    }));
+    return true;
+  },
+
+  deleteReminder: async (reminderId) => {
+    const api = ensureApi();
+    if (!api) {
+      return false;
+    }
+    const result = await api.reminders.delete({ id: reminderId });
+    if (!result.ok) {
+      reportError(result, 'reminders:delete');
+      return false;
+    }
+    set((state) => ({
+      reminders: state.reminders.filter((reminder) => reminder.id !== reminderId),
+    }));
+    return true;
   },
 }));

@@ -23,6 +23,7 @@ interface WorkspaceState extends MemoState {
   setSelectedProject: (id: string | null) => Promise<void>;
   setActiveTab: (tab: 'kanban' | 'wiki' | 'memo' | 'issues') => void;
   addProject: (project: Project) => Promise<Project | null>;
+  deleteProject: (projectId: string) => Promise<void>;
   addTask: (task: Task) => Promise<Task | null>;
   updateTaskStatus: (taskId: string, status: Task['status']) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -228,6 +229,39 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       await get().setSelectedProject(created.id);
     }
     return created;
+  },
+
+  deleteProject: async (projectId) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.projects.delete({ id: projectId });
+    if (!result.ok) {
+      reportError(result, 'projects:delete');
+      return;
+    }
+    const listResult = await api.projects.list();
+    if (!listResult.ok) {
+      reportError(listResult, 'projects:list');
+      return;
+    }
+    const previousProjects = get().projects;
+    const projects = listResult.data.map(mapProject);
+    const currentSelectedId = get().selectedProjectId;
+    const hasSelected = projects.some((project) => project.id === currentSelectedId);
+    let nextSelectedId = currentSelectedId;
+
+    if (currentSelectedId === projectId || !hasSelected) {
+      const deletedIndex = previousProjects.findIndex((project) => project.id === projectId);
+      nextSelectedId =
+        deletedIndex >= 0
+          ? projects[deletedIndex]?.id ?? projects[deletedIndex - 1]?.id ?? null
+          : projects[0]?.id ?? null;
+    }
+
+    set({ projects, selectedProjectId: nextSelectedId });
+    await get().setSelectedProject(nextSelectedId);
   },
 
   addTask: async (task) => {

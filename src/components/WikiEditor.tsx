@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { AppInput } from '@/components/ui/app-input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderMarkdown } from '@/components/markdown/renderMarkdown';
@@ -140,7 +140,7 @@ export function WikiEditor() {
                   <DialogTitle>New Wiki Page</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <Input
+                  <AppInput
                     placeholder="Page title"
                     value={newPageTitle}
                     onChange={(e) => setNewPageTitle(e.target.value)}
@@ -280,10 +280,9 @@ export function WikiEditor() {
             <ScrollArea className="flex-1 p-6 scrollbar-thin">
               {isEditing ? (
                 <div className="space-y-4">
-                  <Input
+                  <AppInput
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="bg-input border-border focus-visible:ring-ring"
                     placeholder="Page title"
                   />
                   <Textarea

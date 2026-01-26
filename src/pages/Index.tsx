@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { AppInput } from "@/components/ui/app-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -181,7 +181,7 @@ const Index = () => {
                         <DialogTitle>New Task</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
-                        <Input
+                        <AppInput
                           placeholder="Task title"
                           value={newTask.title}
                           onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
@@ -250,7 +250,7 @@ const Index = () => {
                         <DialogTitle>New Issue</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
-                        <Input
+                        <AppInput
                           placeholder="Issue title"
                           value={newIssue.title}
                           onChange={(e) => setNewIssue({ ...newIssue, title: e.target.value })}

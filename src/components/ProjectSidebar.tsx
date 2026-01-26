@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { AppInput } from '@/components/ui/app-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 
@@ -79,11 +79,10 @@ export function ProjectSidebar() {
                 <DialogTitle className="font-mono neon-text-cyan">New Project</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
-                <Input
+                <AppInput
                   placeholder="Project name"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
-                  className="bg-input border-border focus:border-primary"
                 />
                 <Textarea
                   placeholder="Description (optional)"

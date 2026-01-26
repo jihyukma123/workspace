@@ -12,6 +12,8 @@
     "electron:start": "NODE_ENV=development electron .",
     "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:8080 && npm run electron:start\"",
     "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
@@ -80,6 +82,7 @@
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",
     "electron": "^40.0.0",
+    "electron-builder": "^26.4.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -93,5 +96,34 @@
     "vite": "^5.4.19",
     "vitest": "^3.2.4",
     "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.workspace.app",
+    "productName": "Workspace",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "migrations/**/*",
+      "main.js",
+      "preload.cjs",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "nsis": false,
+    "compression": "normal"
   }
 }

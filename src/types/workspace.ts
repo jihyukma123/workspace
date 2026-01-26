@@ -57,6 +57,17 @@ export interface MemoState {
   selectedMemoId: string | null;
 }
 
+export type ReminderStatus = 'todo' | 'progress' | 'done';
+
+export interface Reminder {
+  id: string;
+  projectId: string;
+  text: string;
+  status: ReminderStatus;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
 export type KanbanColumn = {
   id: Task['status'];
   title: string;

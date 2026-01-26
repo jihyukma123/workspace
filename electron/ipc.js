@@ -52,6 +52,15 @@ const mapMemo = (row) => ({
   updatedAt: row.updated_at ?? null,
 });
 
+const mapReminder = (row) => ({
+  id: row.id,
+  projectId: row.project_id,
+  text: row.text,
+  status: row.status,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at ?? null,
+});
+
 const mapFeedback = (row) => ({
   id: row.id,
   body: row.body,
@@ -554,6 +563,97 @@ export const registerIpcHandlers = (ipcMain, db) => {
       return ok({ id: parsed.data.id });
     } catch (error) {
       return handleDbError(error, 'Failed to delete memo');
+    }
+  });
+
+  ipcMain.handle('reminders:list', (_event, input) => {
+    const parsed = parseInput(schemas.projectId, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const rows = db
+        .prepare('SELECT * FROM reminders WHERE project_id = ? ORDER BY created_at ASC')
+        .all(parsed.data.projectId);
+      return ok(rows.map(mapReminder));
+    } catch (error) {
+      return handleDbError(error, 'Failed to load reminders');
+    }
+  });
+
+  ipcMain.handle('reminders:create', (_event, input) => {
+    const parsed = parseInput(schemas.reminderCreate, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const payload = parsed.data;
+      db.prepare(
+        `INSERT INTO reminders
+          (id, project_id, text, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(
+        payload.id,
+        payload.projectId,
+        payload.text,
+        payload.status,
+        payload.createdAt,
+        payload.updatedAt ?? null
+      );
+      const row = db.prepare('SELECT * FROM reminders WHERE id = ?').get(payload.id);
+      return ok(mapReminder(row));
+    } catch (error) {
+      return handleDbError(error, 'Failed to create reminder');
+    }
+  });
+
+  ipcMain.handle('reminders:update', (_event, input) => {
+    const parsed = parseInput(schemas.reminderUpdate, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const { id, updates } = parsed.data;
+      const fields = [];
+      const values = [];
+      if (updates.text !== undefined) {
+        fields.push('text = ?');
+        values.push(updates.text);
+      }
+      if (updates.status !== undefined) {
+        fields.push('status = ?');
+        values.push(updates.status);
+      }
+      const updatedAt = updates.updatedAt ?? Date.now();
+      fields.push('updated_at = ?');
+      values.push(updatedAt);
+
+      values.push(id);
+      const statement = `UPDATE reminders SET ${fields.join(', ')} WHERE id = ?`;
+      const info = db.prepare(statement).run(...values);
+      if (info.changes === 0) {
+        return err('NOT_FOUND', 'Reminder not found');
+      }
+      const row = db.prepare('SELECT * FROM reminders WHERE id = ?').get(id);
+      return ok(mapReminder(row));
+    } catch (error) {
+      return handleDbError(error, 'Failed to update reminder');
+    }
+  });
+
+  ipcMain.handle('reminders:delete', (_event, input) => {
+    const parsed = parseInput(schemas.reminderDelete, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const info = db.prepare('DELETE FROM reminders WHERE id = ?').run(parsed.data.id);
+      if (info.changes === 0) {
+        return err('NOT_FOUND', 'Reminder not found');
+      }
+      return ok({ id: parsed.data.id });
+    } catch (error) {
+      return handleDbError(error, 'Failed to delete reminder');
     }
   });
 };

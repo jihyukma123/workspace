@@ -53,6 +53,15 @@ export type MemoRecord = {
   updatedAt: number | null;
 };
 
+export type ReminderRecord = {
+  id: string;
+  projectId: string;
+  text: string;
+  status: 'todo' | 'progress' | 'done';
+  createdAt: number;
+  updatedAt: number | null;
+};
+
 export type FeedbackRecord = {
   id: string;
   body: string;

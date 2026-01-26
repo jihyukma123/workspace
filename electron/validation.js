@@ -117,6 +117,25 @@ export const schemas = {
     }),
   }),
   memoDelete: z.object({ id: idSchema }),
+  reminderCreate: z.object({
+    id: idSchema,
+    projectId: idSchema,
+    text: z.string().min(1),
+    status: z.enum(['todo', 'progress', 'done']),
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema.nullable().optional(),
+  }),
+  reminderUpdate: z.object({
+    id: idSchema,
+    updates: z.object({
+      text: z.string().min(1).optional(),
+      status: z.enum(['todo', 'progress', 'done']).optional(),
+      updatedAt: timestampSchema.nullable().optional(),
+    }).refine((value) => Object.keys(value).length > 0, {
+      message: 'No updates provided',
+    }),
+  }),
+  reminderDelete: z.object({ id: idSchema }),
 };
 
 export const parseInput = (schema, input) => {

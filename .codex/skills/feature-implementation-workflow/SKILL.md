@@ -26,6 +26,7 @@ description: Orchestrate end-to-end feature development using subagents (spec, d
 - One agent at a time; do not overlap agent runs.
 - Wait for agent completion and capture full output before moving on.
 - If output is missing or delayed, keep waiting and polling until the agent completes or an explicit failure is reported.
+- When waiting, poll in up to 5-minute chunks but continue polling for up to 20 minutes total before taking any fallback action.
 - In the main chat response, include each agent's output (or a concise, faithful summary) before starting the next agent.
 
 ## Input Expectations

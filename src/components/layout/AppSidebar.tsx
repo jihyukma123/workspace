@@ -8,7 +8,8 @@ import {
   FolderKanban,
   Check,
   Plus,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,7 +28,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { AppInput } from "@/components/ui/app-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
@@ -130,92 +131,109 @@ export function AppSidebar() {
   };
 
   return (
-    <aside className="w-64 h-screen bg-sidebar flex flex-col border-r border-sidebar-border scrollbar-thin">
+    <aside className={cn("w-64 h-screen bg-sidebar flex flex-col border-r border-sidebar-border scrollbar-thin")}>
       {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <FolderKanban className="w-4 h-4 text-primary-foreground" />
+      <div className={cn("p-4 border-b border-sidebar-border")}>
+        <div className={cn("flex items-center gap-2")}>
+          <div className={cn("w-8 h-8 rounded-lg bg-primary flex items-center justify-center")}>
+            <FolderKanban className={cn("w-4 h-4 text-primary-foreground")} />
           </div>
-          <span className="text-lg font-semibold text-sidebar-accent-foreground">
+          <span className={cn("text-lg font-semibold text-sidebar-accent-foreground")}>
             Workspace
           </span>
         </div>
       </div>
 
       {/* Project Selector */}
-      <div className="p-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-sidebar-muted uppercase tracking-wider">
+      <div className={cn("p-3")}>
+        <div className={cn("flex items-center justify-between mb-2")}>
+          <span className={cn("text-xs font-medium text-sidebar-muted uppercase tracking-wider")}>
             Projects
           </span>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent
-              className="bg-popover border-border"
-              onKeyDown={(e) => {
-                if (e.defaultPrevented) {
-                  return;
-                }
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  void handleAddProject();
-                }
-              }}
+          <div className={cn("flex items-center gap-1")}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-6 w-6 text-sidebar-muted transition-all duration-200",
+                "hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              )}
+              onClick={() => navigate("/projects")}
             >
-              <DialogHeader>
-                <DialogTitle>New Project</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <Input
-                  placeholder="Project name"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                />
-                <Textarea
-                  placeholder="Description (optional)"
-                  value={newProjectDesc}
-                  onChange={(e) => setNewProjectDesc(e.target.value)}
-                />
+              <Settings className={cn("h-4 w-4")} />
+            </Button>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+              <DialogTrigger asChild>
                 <Button
-                  onClick={handleAddProject}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-6 w-6 text-sidebar-muted transition-all duration-200",
+                    "hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                  )}
                 >
-                  Create Project
+                  <Plus className={cn("h-4 w-4")} />
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent
+                className={cn("bg-popover border-border")}
+                onKeyDown={(e) => {
+                  if (e.defaultPrevented) {
+                    return;
+                  }
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleAddProject();
+                  }
+                }}
+              >
+                <DialogHeader>
+                  <DialogTitle>New Project</DialogTitle>
+                </DialogHeader>
+                <div className={cn("space-y-4 pt-4")}>
+                  <AppInput
+                    placeholder="Project name"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                  />
+                  <Textarea
+                    placeholder="Description (optional)"
+                    value={newProjectDesc}
+                    onChange={(e) => setNewProjectDesc(e.target.value)}
+                  />
+                  <Button
+                    onClick={handleAddProject}
+                    className={cn("w-full bg-primary text-primary-foreground hover:bg-primary/90")}
+                  >
+                    Create Project
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="sidebar"
-              className="w-full h-auto justify-between px-3 py-2.5 rounded-lg group"
+              className={cn("w-full h-auto justify-between px-3 py-2.5 rounded-lg group")}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className={cn("flex items-center gap-3 min-w-0")}>
                 {selectedProject && (
                   <>
                     <div className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", getProjectColor(projects.indexOf(selectedProject)))} />
-                    <span className="text-sm font-medium text-sidebar-accent-foreground truncate">
+                    <span className={cn("text-sm font-medium text-sidebar-accent-foreground truncate")}>
                       {selectedProject.name}
                     </span>
                   </>
                 )}
               </div>
-              <ChevronDown className="w-4 h-4 text-sidebar-muted group-hover:text-sidebar-foreground transition-colors flex-shrink-0" />
+              <ChevronDown className={cn("w-4 h-4 text-sidebar-muted group-hover:text-sidebar-foreground transition-colors flex-shrink-0")} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
-            className="w-56 bg-popover border border-border shadow-lg" 
+            className={cn("w-56 bg-popover border border-border shadow-lg")} 
             align="start"
             sideOffset={4}
           >
@@ -223,14 +241,14 @@ export function AppSidebar() {
               <DropdownMenuItem
                 key={project.id}
                 onClick={() => void setSelectedProject(project.id)}
-                className="flex items-center justify-between cursor-pointer"
+                className={cn("flex items-center justify-between cursor-pointer")}
               >
-                <div className="flex items-center gap-3">
+                <div className={cn("flex items-center gap-3")}>
                   <div className={cn("w-2.5 h-2.5 rounded-full", getProjectColor(projects.indexOf(project)))} />
-                  <span className="text-sm">{project.name}</span>
+                  <span className={cn("text-sm")}>{project.name}</span>
                 </div>
                 {selectedProjectId === project.id && (
-                  <Check className="w-4 h-4 text-primary" />
+                  <Check className={cn("w-4 h-4 text-primary")} />
                 )}
               </DropdownMenuItem>
             ))}
@@ -239,8 +257,8 @@ export function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-thin">
-        <div className="space-y-1">
+      <nav className={cn("flex-1 px-3 py-2 overflow-y-auto scrollbar-thin")}>
+        <div className={cn("space-y-1")}>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -257,9 +275,9 @@ export function AppSidebar() {
                 size="sm"
               >
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
+                  <div className={cn("absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full")} />
                 )}
-                <item.icon className="w-4 h-4" />
+                <item.icon className={cn("w-4 h-4")} />
                 <span>{item.label}</span>
               </Button>
             );
@@ -268,16 +286,16 @@ export function AppSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-            <span className="text-xs font-medium text-sidebar-accent-foreground">WS</span>
+      <div className={cn("p-4 border-t border-sidebar-border")}>
+        <div className={cn("flex items-center gap-3")}>
+          <div className={cn("w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center")}>
+            <span className={cn("text-xs font-medium text-sidebar-accent-foreground")}>WS</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-accent-foreground truncate">
+          <div className={cn("flex-1 min-w-0")}>
+            <p className={cn("text-sm font-medium text-sidebar-accent-foreground truncate")}>
               Workspace
             </p>
-            <p className="text-xs text-sidebar-muted truncate">
+            <p className={cn("text-xs text-sidebar-muted truncate")}>
               {projects.length} project{projects.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -287,14 +305,14 @@ export function AppSidebar() {
             <Button
               variant="sidebar"
               size="sm"
-              className="mt-4 w-full justify-start gap-2"
+              className={cn("mt-4 w-full justify-start gap-2")}
             >
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className={cn("h-4 w-4")} />
               Send Feedback
             </Button>
           </DialogTrigger>
           <DialogContent
-            className="bg-popover border-border"
+            className={cn("bg-popover border-border")}
             onKeyDown={(e) => {
               if (e.defaultPrevented) {
                 return;
@@ -306,11 +324,11 @@ export function AppSidebar() {
             }}
           >
             <DialogHeader>
-              <DialogTitle className="font-mono text-lg font-bold text-primary">
+              <DialogTitle className={cn("font-mono text-lg font-bold text-primary")}>
                 Service Feedback
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
+            <div className={cn("space-y-4 pt-4")}>
               <Textarea
                 placeholder="Share a bug, missing feature, or improvement idea..."
                 value={feedbackText}
@@ -323,17 +341,17 @@ export function AppSidebar() {
                   }
                 }}
               />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className={cn("flex items-center justify-between text-xs text-muted-foreground")}>
                 <span>{feedbackText.length} / {feedbackLimit}</span>
                 {feedbackError ? (
-                  <span className="text-destructive">{feedbackError}</span>
+                  <span className={cn("text-destructive")}>{feedbackError}</span>
                 ) : (
                   <span>Stored locally in your database.</span>
                 )}
               </div>
               <Button
                 onClick={handleSubmitFeedback}
-                className="w-full"
+                className={cn("w-full")}
                 disabled={!feedbackText.trim() || isFeedbackSubmitting}
               >
                 {isFeedbackSubmitting ? "Saving..." : "Submit Feedback"}

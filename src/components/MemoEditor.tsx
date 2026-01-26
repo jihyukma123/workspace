@@ -34,7 +34,6 @@ export function MemoEditor() {
     addMemo,
     updateMemoDraft,
     saveMemo,
-    revertMemo,
     deleteMemo,
   } = useWorkspaceStore();
 
@@ -145,15 +144,6 @@ export function MemoEditor() {
   };
 
   const handleCancel = () => {
-    if (!editSnapshot) {
-      setIsEditing(false);
-      return;
-    }
-    revertMemo(editSnapshot.id, {
-      content: editSnapshot.content,
-      updatedAt: editSnapshot.updatedAt,
-      status: editSnapshot.status,
-    });
     setIsEditing(false);
     setEditSnapshot(null);
   };
@@ -266,7 +256,7 @@ export function MemoEditor() {
             </div>
             <div>
               <h2 className="font-mono text-lg font-bold text-primary">
-                {activeMemo?.title || 'Quick Memo'}
+                {activeMemo?.title || 'Untitled Memo'}
               </h2>
               <p className="text-xs text-muted-foreground">
                 Capture your thoughts instantly
@@ -289,7 +279,7 @@ export function MemoEditor() {
                   onClick={handleCancel}
                 >
                   <X className="w-4 h-4 mr-1" />
-                  Cancel
+                  Read Mode
                 </Button>
                 <Button
                   onClick={handleSave}
@@ -310,7 +300,7 @@ export function MemoEditor() {
                   disabled={!activeMemo}
                 >
                   <Edit2 className="w-4 h-4 mr-1" />
-                  Edit
+                  Edit Mode
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

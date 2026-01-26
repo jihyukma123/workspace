@@ -48,7 +48,7 @@ export function IssuesView({ onAddIssue }: IssuesViewProps) {
 
   if (!projectIssues.length) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center py-12">
         <div className="text-center max-w-sm px-6">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
             <AlertCircle className="w-8 h-8 text-primary" />

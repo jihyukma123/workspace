@@ -88,7 +88,7 @@ export function ProjectSidebar() {
                   placeholder="Description (optional)"
                   value={newProjectDesc}
                   onChange={(e) => setNewProjectDesc(e.target.value)}
-                  className="bg-input border-border focus:border-primary"
+                  className={cn("bg-input border-border")}
                 />
                 <Button
                   onClick={handleAddProject}

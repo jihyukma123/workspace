@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { activeTab, selectedProjectId, projects, addTask, addIssue, setActiveTab, hydrate, isHydrated } = useWorkspaceStore();
@@ -137,7 +138,7 @@ const Index = () => {
 
   return (
     <MainLayout>
-      <div className="h-screen flex flex-col">
+      <div className={cn("flex min-h-screen flex-col")}>
         {/* Header */}
         {selectedProjectId && (
           <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
@@ -196,6 +197,7 @@ const Index = () => {
                           placeholder="Description (optional)"
                           value={newTask.description}
                           onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                          className={cn("bg-input border-border")}
                         />
                         <Select
                           value={newTask.priority}

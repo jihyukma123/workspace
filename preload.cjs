@@ -33,4 +33,7 @@ contextBridge.exposeInMainWorld('workspaceApi', {
     update: (input) => invoke('memos:update', input),
     delete: (input) => invoke('memos:delete', input),
   },
+  feedback: {
+    create: (input) => invoke('feedback:create', input),
+  },
 });

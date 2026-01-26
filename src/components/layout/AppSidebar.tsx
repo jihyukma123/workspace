@@ -7,7 +7,8 @@ import {
   ChevronDown,
   FolderKanban,
   Check,
-  Plus
+  Plus,
+  MessageSquare
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,19 @@ export function AppSidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDesc, setNewProjectDesc] = useState("");
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
+
+  const feedbackLimit = 1000;
+
+  const getFeedbackId = () => {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  };
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
@@ -64,6 +79,53 @@ export function AppSidebar() {
         setNewProjectDesc("");
         setIsOpen(false);
       }
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (isFeedbackSubmitting) {
+      return;
+    }
+    const trimmed = feedbackText.trim();
+    if (!trimmed) {
+      setFeedbackError("Please enter your feedback.");
+      return;
+    }
+    if (!window.workspaceApi?.feedback?.create) {
+      setFeedbackError("Feedback service is unavailable.");
+      return;
+    }
+    setFeedbackError("");
+    setIsFeedbackSubmitting(true);
+    try {
+      const result = await window.workspaceApi.feedback.create({
+        id: getFeedbackId(),
+        body: trimmed,
+        createdAt: Date.now(),
+      });
+      if (!result.ok) {
+        setFeedbackError(result.error.message || "Failed to save feedback.");
+        return;
+      }
+      setFeedbackText("");
+      setIsFeedbackOpen(false);
+      toast({
+        title: "Thanks for the feedback.",
+        description: "Your note was saved locally.",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save feedback.";
+      setFeedbackError(message);
+    } finally {
+      setIsFeedbackSubmitting(false);
+    }
+  };
+
+  const handleFeedbackOpenChange = (nextOpen: boolean) => {
+    setIsFeedbackOpen(nextOpen);
+    if (!nextOpen) {
+      setFeedbackError("");
+      setIsFeedbackSubmitting(false);
     }
   };
 
@@ -220,6 +282,65 @@ export function AppSidebar() {
             </p>
           </div>
         </div>
+        <Dialog open={isFeedbackOpen} onOpenChange={handleFeedbackOpenChange}>
+          <DialogTrigger asChild>
+            <Button
+              variant="sidebar"
+              size="sm"
+              className="mt-4 w-full justify-start gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Send Feedback
+            </Button>
+          </DialogTrigger>
+          <DialogContent
+            className="bg-popover border-border"
+            onKeyDown={(e) => {
+              if (e.defaultPrevented) {
+                return;
+              }
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void handleSubmitFeedback();
+              }
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle className="font-mono text-lg font-bold text-primary">
+                Service Feedback
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <Textarea
+                placeholder="Share a bug, missing feature, or improvement idea..."
+                value={feedbackText}
+                maxLength={feedbackLimit}
+                className={cn(feedbackError ? "border-destructive" : "")}
+                onChange={(e) => {
+                  setFeedbackText(e.target.value);
+                  if (feedbackError) {
+                    setFeedbackError("");
+                  }
+                }}
+              />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{feedbackText.length} / {feedbackLimit}</span>
+                {feedbackError ? (
+                  <span className="text-destructive">{feedbackError}</span>
+                ) : (
+                  <span>Stored locally in your database.</span>
+                )}
+              </div>
+              <Button
+                onClick={handleSubmitFeedback}
+                className="w-full"
+                disabled={!feedbackText.trim() || isFeedbackSubmitting}
+              >
+                {isFeedbackSubmitting ? "Saving..." : "Submit Feedback"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </aside>
   );

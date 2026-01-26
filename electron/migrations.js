@@ -66,4 +66,17 @@ export const migrations = [
     name: 'init',
     up: migrationSql,
   },
+  {
+    id: 2,
+    name: 'feedback',
+    up: `
+      CREATE TABLE IF NOT EXISTS feedback (
+        id TEXT PRIMARY KEY,
+        body TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at);
+    `,
+  },
 ];

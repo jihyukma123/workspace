@@ -4,6 +4,11 @@ const idSchema = z.string().min(1);
 const timestampSchema = z.number().int().nonnegative();
 
 export const schemas = {
+  feedbackCreate: z.object({
+    id: idSchema,
+    body: z.string().trim().min(1).max(1000),
+    createdAt: timestampSchema,
+  }),
   projectCreate: z.object({
     id: idSchema,
     name: z.string().min(1),

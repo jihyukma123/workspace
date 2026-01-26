@@ -7,6 +7,7 @@ import type {
   IssueRecord,
   WikiPageRecord,
   MemoRecord,
+  FeedbackRecord,
 } from '@/types/ipc';
 
 declare global {
@@ -74,6 +75,9 @@ declare global {
           updates: Partial<Pick<MemoRecord, 'title' | 'content' | 'updatedAt'>>;
         }) => Promise<Result<MemoRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
+      };
+      feedback: {
+        create: (input: FeedbackRecord) => Promise<Result<FeedbackRecord>>;
       };
     };
   }

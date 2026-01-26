@@ -52,3 +52,9 @@ export type MemoRecord = {
   createdAt: number;
   updatedAt: number | null;
 };
+
+export type FeedbackRecord = {
+  id: string;
+  body: string;
+  createdAt: number;
+};

@@ -52,6 +52,12 @@ const mapMemo = (row) => ({
   updatedAt: row.updated_at ?? null,
 });
 
+const mapFeedback = (row) => ({
+  id: row.id,
+  body: row.body,
+  createdAt: row.created_at,
+});
+
 const handleDbError = (error, message) => {
   return err('DB_ERROR', message, {
     message: error?.message ?? 'Unknown database error',
@@ -481,6 +487,23 @@ export const registerIpcHandlers = (ipcMain, db) => {
       return ok(mapMemo(row));
     } catch (error) {
       return handleDbError(error, 'Failed to create memo');
+    }
+  });
+
+  ipcMain.handle('feedback:create', (_event, input) => {
+    const parsed = parseInput(schemas.feedbackCreate, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const payload = parsed.data;
+      db.prepare(
+        'INSERT INTO feedback (id, body, created_at) VALUES (?, ?, ?)'
+      ).run(payload.id, payload.body, payload.createdAt);
+      const row = db.prepare('SELECT * FROM feedback WHERE id = ?').get(payload.id);
+      return ok(mapFeedback(row));
+    } catch (error) {
+      return handleDbError(error, 'Failed to save feedback');
     }
   });
 

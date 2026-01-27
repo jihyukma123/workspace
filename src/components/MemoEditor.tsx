@@ -185,8 +185,9 @@ export function MemoEditor() {
               onClick={handleAddMemo}
               disabled={!selectedProjectId}
               variant="primary"
+              className="gap-2"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="h-4 w-4" />
               New
             </Button>
           </div>

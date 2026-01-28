@@ -10,6 +10,7 @@ build/
 release/
 *.log
 agent_work_logs/
+*.tsbuildinfo
 
 # OS files
 .DS_Store

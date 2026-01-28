@@ -6,7 +6,7 @@ import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
 import { IssuesView } from "@/components/IssuesView";
 import { useWorkspaceStore } from "@/store/workspaceStore";
-import { Filter, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Issue, Task } from "@/types/workspace";
 import {
   Dialog,
@@ -148,12 +148,6 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Filter */}
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-foreground">Filter</span>
-              </Button>
-              
               {/* Add Task */}
               {activeTab === 'kanban' && (
                 <>

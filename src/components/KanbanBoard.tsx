@@ -4,6 +4,16 @@ import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Task, KanbanColumn } from '@/types/workspace';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const columns: KanbanColumn[] = [
   { id: 'backlog', title: 'Backlog', color: 'secondary' },
@@ -26,6 +36,7 @@ const priorityColors = {
 export function KanbanBoard() {
   const { tasks, updateTaskStatus, deleteTask } = useWorkspaceStore();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
   const handleDragStart = (taskId: string) => {
     setDraggedTask(taskId);
@@ -76,82 +87,140 @@ export function KanbanBoard() {
     return colorMap[color];
   };
 
+  const handleDeleteConfirm = async (taskId: string) => {
+    await deleteTask(taskId);
+    setTaskToDelete(null);
+  };
+
   return (
-    <div className="flex-1 p-6 overflow-x-auto scrollbar-thin h-full">
-      <div className="flex gap-4 w-full min-w-[840px] h-full">
-        {columns.map((column) => {
-          const Icon = columnIcons[column.id];
-          const columnTasks = getColumnTasks(column.id);
+    <>
+      <div className="flex-1 p-6 overflow-x-auto scrollbar-thin h-full">
+        <div className="flex gap-4 w-full min-w-[840px] h-full">
+          {columns.map((column) => {
+            const Icon = columnIcons[column.id];
+            const columnTasks = getColumnTasks(column.id);
 
-          return (
-            <div
-              key={column.id}
-              className={cn(
-                'min-w-[260px] flex-1 rounded-lg border bg-kanban-column p-4 min-h-[500px] transition-all duration-200 flex flex-col',
-                getColumnBorderClass(column.color),
-                draggedTask && 'border-dashed border-primary/50'
-              )}
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(column.id)}
-            >
+            return (
               <div
+                key={column.id}
                 className={cn(
-                  'flex items-center gap-2 mb-4 pb-3 border-b',
-                  getHeaderBorderClass(column.color)
+                  'min-w-[260px] flex-1 rounded-lg border bg-kanban-column p-4 min-h-[500px] transition-all duration-200 flex flex-col',
+                  getColumnBorderClass(column.color),
+                  draggedTask && 'border-dashed border-primary/50'
                 )}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(column.id)}
               >
-                <Icon className={cn('w-4 h-4', getHeaderColorClass(column.color))} />
-                <h4 className={cn('font-semibold text-sm', getHeaderColorClass(column.color))}>
-                  {column.title}
-                </h4>
-                <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                  {columnTasks.length}
-                </span>
-              </div>
+                <div
+                  className={cn(
+                    'flex items-center gap-2 mb-4 pb-3 border-b',
+                    getHeaderBorderClass(column.color)
+                  )}
+                >
+                  <Icon className={cn('w-4 h-4', getHeaderColorClass(column.color))} />
+                  <h4 className={cn('font-semibold text-sm', getHeaderColorClass(column.color))}>
+                    {column.title}
+                  </h4>
+                  <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {columnTasks.length}
+                  </span>
+                </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto scrollbar-thin">
-                {columnTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={() => handleDragStart(task.id)}
-                    className={cn(
-                      'bg-kanban-card border border-border rounded-lg p-3 cursor-grab active:cursor-grabbing',
-                      'hover:bg-kanban-card-hover hover:border-primary/30 transition-all duration-200 group',
-                      draggedTask === task.id && 'opacity-50'
-                    )}
-                  >
-                    <div className="flex items-start gap-2">
-                      <GripVertical className="w-4 h-4 text-muted-foreground mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-foreground truncate">{task.title}</p>
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {task.description}
+                <div className="flex-1 space-y-2 overflow-y-auto scrollbar-thin">
+                  {columnTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={() => handleDragStart(task.id)}
+                      className={cn(
+                        'bg-kanban-card border border-border rounded-lg p-3 cursor-grab active:cursor-grabbing',
+                        'hover:bg-kanban-card-hover hover:border-primary/30 transition-all duration-200 group',
+                        draggedTask === task.id && 'opacity-50'
+                      )}
+                    >
+                      <div className="flex items-start gap-2">
+                        <GripVertical className="w-4 h-4 text-muted-foreground mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-foreground truncate">
+                            {task.title}
                           </p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className={cn('text-xs px-2 py-0.5 rounded-full', priorityColors[task.priority])}>
-                            {task.priority}
-                          </span>
+                          {task.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              {task.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <span
+                              className={cn(
+                                'text-xs px-2 py-0.5 rounded-full',
+                                priorityColors[task.priority]
+                              )}
+                            >
+                              {task.priority}
+                            </span>
+                          </div>
                         </div>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setTaskToDelete(task);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => void deleteTask(task.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      <AlertDialog
+        open={!!taskToDelete}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTaskToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={cn('font-mono text-lg font-bold text-primary')}>
+              Delete Task
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{' '}
+              <span className={cn('font-medium text-foreground')}>
+                {taskToDelete?.title ?? 'this task'}
+              </span>
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={cn('bg-destructive text-destructive-foreground hover:bg-destructive/90')}
+              onClick={() => {
+                const taskId = taskToDelete?.id;
+                if (!taskId) {
+                  return;
+                }
+                void handleDeleteConfirm(taskId);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

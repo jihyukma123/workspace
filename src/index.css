@@ -20,8 +20,36 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 10%;
 
-    --primary: 173 80% 40%;
-    --primary-foreground: 0 0% 100%;
+    /* Brand color (drives primary/accent/ring + sidebar highlight) */
+    --brand-foreground-light: 0 0% 100%;
+    --brand-foreground-dark: 220 25% 10%;
+    --brand: 173 80% 40%;
+    --brand-foreground: var(--brand-foreground-light);
+
+    /* Pantone Color of the Year (last 10 years) */
+    --pantone-2016: 0 74% 88%; /* Rose Quartz */
+    --pantone-2016-foreground: var(--brand-foreground-dark);
+    --pantone-2017: 84 40% 49%; /* Greenery */
+    --pantone-2017-foreground: var(--brand-foreground-light);
+    --pantone-2018: 259 31% 42%; /* Ultra Violet */
+    --pantone-2018-foreground: var(--brand-foreground-light);
+    --pantone-2019: 5 100% 69%; /* Living Coral */
+    --pantone-2019-foreground: var(--brand-foreground-dark);
+    --pantone-2020: 208 79% 28%; /* Classic Blue */
+    --pantone-2020-foreground: var(--brand-foreground-light);
+    --pantone-2021: 52 89% 63%; /* Illuminating */
+    --pantone-2021-foreground: var(--brand-foreground-dark);
+    --pantone-2022: 239 29% 54%; /* Very Peri */
+    --pantone-2022-foreground: var(--brand-foreground-light);
+    --pantone-2023: 346 57% 47%; /* Viva Magenta */
+    --pantone-2023-foreground: var(--brand-foreground-light);
+    --pantone-2024: 22 100% 80%; /* Peach Fuzz */
+    --pantone-2024-foreground: var(--brand-foreground-dark);
+    --pantone-2025: 19 26% 52%; /* Mocha Mousse */
+    --pantone-2025-foreground: var(--brand-foreground-light);
+
+    --primary: var(--brand);
+    --primary-foreground: var(--brand-foreground);
 
     --secondary: 220 14% 92%;
     --secondary-foreground: 220 25% 20%;
@@ -29,26 +57,26 @@
     --muted: 220 14% 95%;
     --muted-foreground: 220 10% 45%;
 
-    --accent: 173 80% 40%;
-    --accent-foreground: 0 0% 100%;
+    --accent: var(--brand);
+    --accent-foreground: var(--brand-foreground);
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 13% 88%;
     --input: 0 0% 100%;
-    --ring: 173 80% 40%;
+    --ring: var(--brand);
 
     --radius: 0.75rem;
 
     --sidebar-background: 220 25% 12%;
     --sidebar-foreground: 220 10% 75%;
-    --sidebar-primary: 173 80% 45%;
+    --sidebar-primary: var(--brand);
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 20% 18%;
     --sidebar-accent-foreground: 220 10% 90%;
     --sidebar-border: 220 20% 20%;
-    --sidebar-ring: 173 80% 45%;
+    --sidebar-ring: var(--brand);
     --sidebar-muted: 220 15% 35%;
 
     /* Kanban specific */
@@ -72,8 +100,12 @@
     --popover: 220 25% 12%;
     --popover-foreground: 220 10% 95%;
 
-    --primary: 173 80% 45%;
-    --primary-foreground: 220 25% 8%;
+    --brand-foreground-dark: 220 25% 8%;
+    --brand: 173 80% 45%;
+    --brand-foreground: var(--brand-foreground-dark);
+
+    --primary: var(--brand);
+    --primary-foreground: var(--brand-foreground);
 
     --secondary: 220 20% 18%;
     --secondary-foreground: 220 10% 90%;
@@ -81,29 +113,70 @@
     --muted: 220 20% 15%;
     --muted-foreground: 220 10% 55%;
 
-    --accent: 220 20% 18%;
-    --accent-foreground: 220 10% 90%;
+    --accent: var(--brand);
+    --accent-foreground: var(--brand-foreground);
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 20% 20%;
     --input: 220 20% 20%;
-    --ring: 173 80% 45%;
+    --ring: var(--brand);
 
     --sidebar-background: 220 25% 6%;
     --sidebar-foreground: 220 10% 70%;
-    --sidebar-primary: 173 80% 45%;
+    --sidebar-primary: var(--brand);
     --sidebar-primary-foreground: 220 25% 8%;
     --sidebar-accent: 220 20% 12%;
     --sidebar-accent-foreground: 220 10% 90%;
     --sidebar-border: 220 20% 15%;
-    --sidebar-ring: 173 80% 45%;
+    --sidebar-ring: var(--brand);
     --sidebar-muted: 220 15% 40%;
 
     --kanban-column: 220 20% 12%;
     --kanban-card: 220 25% 15%;
     --kanban-card-hover: 220 25% 18%;
+  }
+
+  :root[data-primary="pantone-2016"] {
+    --brand: var(--pantone-2016);
+    --brand-foreground: var(--pantone-2016-foreground);
+  }
+  :root[data-primary="pantone-2017"] {
+    --brand: var(--pantone-2017);
+    --brand-foreground: var(--pantone-2017-foreground);
+  }
+  :root[data-primary="pantone-2018"] {
+    --brand: var(--pantone-2018);
+    --brand-foreground: var(--pantone-2018-foreground);
+  }
+  :root[data-primary="pantone-2019"] {
+    --brand: var(--pantone-2019);
+    --brand-foreground: var(--pantone-2019-foreground);
+  }
+  :root[data-primary="pantone-2020"] {
+    --brand: var(--pantone-2020);
+    --brand-foreground: var(--pantone-2020-foreground);
+  }
+  :root[data-primary="pantone-2021"] {
+    --brand: var(--pantone-2021);
+    --brand-foreground: var(--pantone-2021-foreground);
+  }
+  :root[data-primary="pantone-2022"] {
+    --brand: var(--pantone-2022);
+    --brand-foreground: var(--pantone-2022-foreground);
+  }
+  :root[data-primary="pantone-2023"] {
+    --brand: var(--pantone-2023);
+    --brand-foreground: var(--pantone-2023-foreground);
+  }
+  :root[data-primary="pantone-2024"] {
+    --brand: var(--pantone-2024);
+    --brand-foreground: var(--pantone-2024-foreground);
+  }
+  :root[data-primary="pantone-2025"] {
+    --brand: var(--pantone-2025);
+    --brand-foreground: var(--pantone-2025-foreground);
   }
 }
 

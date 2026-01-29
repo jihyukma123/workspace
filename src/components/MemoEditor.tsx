@@ -199,7 +199,7 @@ export function MemoEditor() {
   };
 
   return (
-    <div className="flex-1 flex gap-6 p-6">
+    <div className="flex-1 flex gap-6 p-6 h-full min-h-0">
       <div className="w-72 shrink-0">
         <div className="rounded-lg border border-border bg-card text-card-foreground shadow-sm h-full flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">

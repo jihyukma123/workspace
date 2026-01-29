@@ -9,10 +9,10 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className={cn("flex min-h-screen w-full bg-background")}>
+    <div className={cn("flex h-screen w-full bg-background")}>
       <AppSidebar />
-      <div className={cn("flex flex-1 flex-col lg:flex-row lg:overflow-hidden")}>
-        <main className={cn("flex-1 lg:overflow-hidden")}>
+      <div className={cn("flex flex-1 min-h-0 flex-col lg:flex-row lg:overflow-hidden")}>
+        <main className={cn("flex flex-1 min-h-0 flex-col lg:overflow-hidden")}>
           {children}
         </main>
       </div>

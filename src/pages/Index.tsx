@@ -168,7 +168,7 @@ const Index = () => {
 
   return (
     <MainLayout>
-      <div className={cn("flex min-h-screen flex-col")}>
+      <div className={cn("flex flex-1 min-h-0 flex-col")}>
         {/* Header */}
         {selectedProjectId && (
           <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
@@ -339,7 +339,7 @@ const Index = () => {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {renderContent()}
         </div>
       </div>

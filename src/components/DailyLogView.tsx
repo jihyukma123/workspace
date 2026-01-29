@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Save } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,7 @@ export function DailyLogView() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [content, setContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const saveLock = useRef(false);
 
   useEffect(() => {
     setSelectedDate(new Date());
@@ -60,21 +61,29 @@ export function DailyLogView() {
     if (!selectedProjectId || !hasChanges) {
       return;
     }
-    setIsSaving(true);
-    if (selectedLog) {
-      await updateDailyLog(selectedLog.id, { content });
-    } else {
-      const now = new Date();
-      await addDailyLog({
-        id: `daily-log-${now.getTime()}`,
-        projectId: selectedProjectId,
-        date: dateKey,
-        content,
-        createdAt: now,
-        updatedAt: null,
-      });
+    if (saveLock.current) {
+      return;
     }
-    setIsSaving(false);
+    saveLock.current = true;
+    setIsSaving(true);
+    try {
+      if (selectedLog) {
+        await updateDailyLog(selectedLog.id, { content });
+      } else {
+        const now = new Date();
+        await addDailyLog({
+          id: `daily-log-${now.getTime()}`,
+          projectId: selectedProjectId,
+          date: dateKey,
+          content,
+          createdAt: now,
+          updatedAt: null,
+        });
+      }
+    } finally {
+      setIsSaving(false);
+      saveLock.current = false;
+    }
   };
 
   const updatedAtLabel = selectedLog?.updatedAt

@@ -11,26 +11,38 @@ import {
 } from '@/components/ui/dialog';
 import { AppInput } from '@/components/ui/app-input';
 import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export function ProjectSidebar() {
   const { projects, selectedProjectId, setSelectedProject, addProject } = useWorkspaceStore();
   const [isOpen, setIsOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [isProjectSubmitting, setIsProjectSubmitting] = useState(false);
+  const projectSubmitLock = useRef(false);
 
   const handleAddProject = async () => {
     if (newProjectName.trim()) {
-      const created = await addProject({
-        id: Date.now().toString(),
-        name: newProjectName,
-        description: newProjectDesc,
-        createdAt: new Date(),
-      });
-      if (created) {
-        setNewProjectName('');
-        setNewProjectDesc('');
-        setIsOpen(false);
+      if (projectSubmitLock.current) {
+        return;
+      }
+      projectSubmitLock.current = true;
+      setIsProjectSubmitting(true);
+      try {
+        const created = await addProject({
+          id: Date.now().toString(),
+          name: newProjectName,
+          description: newProjectDesc,
+          createdAt: new Date(),
+        });
+        if (created) {
+          setNewProjectName('');
+          setNewProjectDesc('');
+          setIsOpen(false);
+        }
+      } finally {
+        setIsProjectSubmitting(false);
+        projectSubmitLock.current = false;
       }
     }
   };
@@ -70,6 +82,9 @@ export function ProjectSidebar() {
                   return;
                 }
                 if (e.key === 'Enter' && !e.shiftKey) {
+                  if (isProjectSubmitting) {
+                    return;
+                  }
                   e.preventDefault();
                   void handleAddProject();
                 }
@@ -93,6 +108,7 @@ export function ProjectSidebar() {
                 <Button
                   onClick={handleAddProject}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isProjectSubmitting}
                 >
                   Create Project
                 </Button>

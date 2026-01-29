@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, FileText, ChevronRight, Edit2, Save, X, Trash2, Clock } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { cn } from '@/lib/utils';
@@ -38,6 +38,10 @@ export function WikiEditor() {
   const [editTitle, setEditTitle] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
+  const [isPageSubmitting, setIsPageSubmitting] = useState(false);
+  const [isPageSaving, setIsPageSaving] = useState(false);
+  const pageSubmitLock = useRef(false);
+  const pageSaveLock = useRef(false);
 
   const selectedPage = projectPages.find((p) => p.id === selectedPageId);
 
@@ -60,13 +64,24 @@ export function WikiEditor() {
     }
   };
 
-  const handleSave = () => {
-    if (selectedPageId) {
-      void updateWikiPage(selectedPageId, {
+  const handleSave = async () => {
+    if (!selectedPageId) {
+      return;
+    }
+    if (pageSaveLock.current) {
+      return;
+    }
+    pageSaveLock.current = true;
+    setIsPageSaving(true);
+    setIsEditing(false);
+    try {
+      await updateWikiPage(selectedPageId, {
         title: editTitle.trim() || 'Untitled',
         content: editContent,
       });
-      setIsEditing(false);
+    } finally {
+      setIsPageSaving(false);
+      pageSaveLock.current = false;
     }
   };
 
@@ -82,6 +97,11 @@ export function WikiEditor() {
     }
 
     if (newPageTitle.trim()) {
+      if (pageSubmitLock.current) {
+        return;
+      }
+      pageSubmitLock.current = true;
+      setIsPageSubmitting(true);
       const newPage = {
         id: Date.now().toString(),
         projectId: selectedProjectId,
@@ -92,11 +112,16 @@ export function WikiEditor() {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      const created = await addWikiPage(newPage);
-      if (created) {
-        setSelectedPageId(created.id);
-        setNewPageTitle('');
-        setIsAddOpen(false);
+      try {
+        const created = await addWikiPage(newPage);
+        if (created) {
+          setSelectedPageId(created.id);
+          setNewPageTitle('');
+          setIsAddOpen(false);
+        }
+      } finally {
+        setIsPageSubmitting(false);
+        pageSubmitLock.current = false;
       }
     }
   };
@@ -135,7 +160,21 @@ export function WikiEditor() {
                   New
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-popover border-border">
+              <DialogContent
+                className="bg-popover border-border"
+                onKeyDown={(e) => {
+                  if (e.defaultPrevented) {
+                    return;
+                  }
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    if (isPageSubmitting) {
+                      return;
+                    }
+                    e.preventDefault();
+                    handleAddPage();
+                  }
+                }}
+              >
                 <DialogHeader>
                   <DialogTitle>New Wiki Page</DialogTitle>
                 </DialogHeader>
@@ -146,6 +185,9 @@ export function WikiEditor() {
                     onChange={(e) => setNewPageTitle(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
+                        if (isPageSubmitting) {
+                          return;
+                        }
                         e.preventDefault();
                         handleAddPage();
                       }
@@ -155,6 +197,7 @@ export function WikiEditor() {
                     onClick={handleAddPage}
                     className="w-full"
                     variant="primary"
+                    disabled={isPageSubmitting}
                   >
                     Create Page
                   </Button>
@@ -229,6 +272,7 @@ export function WikiEditor() {
                       size="sm"
                       onClick={handleSave}
                       variant="primary"
+                      disabled={isPageSaving}
                     >
                       <Save className="w-4 h-4 mr-1" />
                       Save

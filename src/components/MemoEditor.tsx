@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StickyNote, Save, Clock, Plus, Edit2, X, Trash2 } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +45,10 @@ export function MemoEditor() {
   const activeMemo = projectMemos.find((memo) => memo.id === selectedMemoId) ?? null;
   const [isEditing, setIsEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState<MemoSnapshot | null>(null);
+  const [isMemoSubmitting, setIsMemoSubmitting] = useState(false);
+  const [isMemoSaving, setIsMemoSaving] = useState(false);
+  const memoSubmitLock = useRef(false);
+  const memoSaveLock = useRef(false);
 
   useEffect(() => {
     if (!selectedProjectId) {
@@ -115,18 +119,28 @@ export function MemoEditor() {
     if (!selectedProjectId) {
       return;
     }
-    const now = new Date();
-    const created = await addMemo({
-      id: `memo-${now.getTime()}`,
-      projectId: selectedProjectId,
-      title: 'Untitled Memo',
-      content: '',
-      createdAt: now,
-      updatedAt: null,
-      status: 'unsaved',
-    });
-    if (!created) {
+    if (memoSubmitLock.current) {
       return;
+    }
+    memoSubmitLock.current = true;
+    const now = new Date();
+    setIsMemoSubmitting(true);
+    try {
+      const created = await addMemo({
+        id: `memo-${now.getTime()}`,
+        projectId: selectedProjectId,
+        title: 'Untitled Memo',
+        content: '',
+        createdAt: now,
+        updatedAt: null,
+        status: 'unsaved',
+      });
+      if (!created) {
+        return;
+      }
+    } finally {
+      setIsMemoSubmitting(false);
+      memoSubmitLock.current = false;
     }
   };
 
@@ -148,13 +162,23 @@ export function MemoEditor() {
     setEditSnapshot(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!activeMemo) {
       return;
     }
-    void saveMemo(activeMemo.id, activeMemo.content);
+    if (memoSaveLock.current) {
+      return;
+    }
+    memoSaveLock.current = true;
+    setIsMemoSaving(true);
     setIsEditing(false);
     setEditSnapshot(null);
+    try {
+      await saveMemo(activeMemo.id, activeMemo.content);
+    } finally {
+      setIsMemoSaving(false);
+      memoSaveLock.current = false;
+    }
   };
 
   const handleSelectMemo = (memoId: string) => {
@@ -183,7 +207,7 @@ export function MemoEditor() {
             <Button
               size="sm"
               onClick={handleAddMemo}
-              disabled={!selectedProjectId}
+              disabled={!selectedProjectId || isMemoSubmitting}
               variant="primary"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -283,7 +307,7 @@ export function MemoEditor() {
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={!activeMemo || activeMemo.status !== 'unsaved'}
+                  disabled={!activeMemo || activeMemo.status !== 'unsaved' || isMemoSaving}
                   size="sm"
                   variant="primary"
                 >

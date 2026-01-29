@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { KanbanBoard } from "@/components/KanbanBoard";
@@ -33,6 +33,8 @@ const Index = () => {
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' as Task['priority'] });
+  const [isTaskSubmitting, setIsTaskSubmitting] = useState(false);
+  const taskSubmitLock = useRef(false);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [newIssue, setNewIssue] = useState({
     title: '',
@@ -40,23 +42,35 @@ const Index = () => {
     priority: 'medium' as Issue['priority'],
     status: 'todo' as Issue['status'],
   });
+  const [isIssueSubmitting, setIsIssueSubmitting] = useState(false);
+  const issueSubmitLock = useRef(false);
 
   const handleAddTask = async () => {
     if (!selectedProjectId || !newTask.title.trim()) {
       return;
     }
-    const created = await addTask({
-      id: Date.now().toString(),
-      projectId: selectedProjectId,
-      title: newTask.title,
-      description: newTask.description,
-      status: 'backlog',
-      priority: newTask.priority,
-      createdAt: new Date(),
-    });
-    if (created) {
-      setNewTask({ title: '', description: '', priority: 'medium' });
-      setIsTaskDialogOpen(false);
+    if (taskSubmitLock.current) {
+      return;
+    }
+    taskSubmitLock.current = true;
+    setIsTaskSubmitting(true);
+    try {
+      const created = await addTask({
+        id: Date.now().toString(),
+        projectId: selectedProjectId,
+        title: newTask.title,
+        description: newTask.description,
+        status: 'backlog',
+        priority: newTask.priority,
+        createdAt: new Date(),
+      });
+      if (created) {
+        setNewTask({ title: '', description: '', priority: 'medium' });
+        setIsTaskDialogOpen(false);
+      }
+    } finally {
+      setIsTaskSubmitting(false);
+      taskSubmitLock.current = false;
     }
   };
 
@@ -64,20 +78,30 @@ const Index = () => {
     if (!selectedProjectId || !newIssue.title.trim()) {
       return;
     }
+    if (issueSubmitLock.current) {
+      return;
+    }
+    issueSubmitLock.current = true;
 
-    const created = await addIssue({
-      id: Date.now().toString(),
-      projectId: selectedProjectId,
-      title: newIssue.title,
-      description: newIssue.description,
-      status: newIssue.status,
-      priority: newIssue.priority,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    if (created) {
-      setNewIssue({ title: '', description: '', priority: 'medium', status: 'todo' });
-      setIsIssueDialogOpen(false);
+    setIsIssueSubmitting(true);
+    try {
+      const created = await addIssue({
+        id: Date.now().toString(),
+        projectId: selectedProjectId,
+        title: newIssue.title,
+        description: newIssue.description,
+        status: newIssue.status,
+        priority: newIssue.priority,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      if (created) {
+        setNewIssue({ title: '', description: '', priority: 'medium', status: 'todo' });
+        setIsIssueDialogOpen(false);
+      }
+    } finally {
+      setIsIssueSubmitting(false);
+      issueSubmitLock.current = false;
     }
   };
 
@@ -173,6 +197,9 @@ const Index = () => {
                         return;
                       }
                       if (e.key === 'Enter' && !e.shiftKey) {
+                        if (isTaskSubmitting) {
+                          return;
+                        }
                         e.preventDefault();
                         handleAddTask();
                       }
@@ -188,6 +215,9 @@ const Index = () => {
                           onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
+                              if (isTaskSubmitting) {
+                                return;
+                              }
                               e.preventDefault();
                               handleAddTask();
                             }
@@ -215,6 +245,7 @@ const Index = () => {
                         <Button
                           onClick={handleAddTask}
                           className="w-full"
+                          disabled={isTaskSubmitting}
                         >
                           Create Task
                         </Button>
@@ -238,16 +269,19 @@ const Index = () => {
                   <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
                     <DialogContent
                       className="bg-popover border-border"
-                      onKeyDown={(e) => {
-                        if (e.defaultPrevented) {
+                    onKeyDown={(e) => {
+                      if (e.defaultPrevented) {
+                        return;
+                      }
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        if (isIssueSubmitting) {
                           return;
                         }
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleAddIssue();
-                        }
-                      }}
-                    >
+                        e.preventDefault();
+                        handleAddIssue();
+                      }
+                    }}
+                  >
                       <DialogHeader>
                         <DialogTitle>New Issue</DialogTitle>
                       </DialogHeader>
@@ -291,6 +325,7 @@ const Index = () => {
                         <Button
                           onClick={handleAddIssue}
                           className="w-full"
+                          disabled={isIssueSubmitting}
                         >
                           Create Issue
                         </Button>

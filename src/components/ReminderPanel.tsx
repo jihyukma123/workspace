@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,8 @@ export function ReminderPanelContent() {
   } = useWorkspaceStore();
   const [newText, setNewText] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isReminderSubmitting, setIsReminderSubmitting] = useState(false);
+  const reminderSubmitLock = useRef(false);
 
   const projectReminders = useMemo(() => {
     return reminders
@@ -51,21 +53,31 @@ export function ReminderPanelContent() {
     if (!trimmed) {
       return;
     }
-    setErrorMessage(null);
-    const now = new Date();
-    const created = await addReminder({
-      id: getReminderId(),
-      projectId: selectedProjectId,
-      text: trimmed,
-      status: 'todo',
-      createdAt: now,
-      updatedAt: null,
-    });
-    if (!created) {
-      setErrorMessage('Could not save the reminder. Try again.');
+    if (reminderSubmitLock.current) {
       return;
     }
-    setNewText('');
+    reminderSubmitLock.current = true;
+    setErrorMessage(null);
+    const now = new Date();
+    setIsReminderSubmitting(true);
+    try {
+      const created = await addReminder({
+        id: getReminderId(),
+        projectId: selectedProjectId,
+        text: trimmed,
+        status: 'todo',
+        createdAt: now,
+        updatedAt: null,
+      });
+      if (!created) {
+        setErrorMessage('Could not save the reminder. Try again.');
+        return;
+      }
+      setNewText('');
+    } finally {
+      setIsReminderSubmitting(false);
+      reminderSubmitLock.current = false;
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -74,6 +86,9 @@ export function ReminderPanelContent() {
       return;
     }
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (isReminderSubmitting) {
+        return;
+      }
       e.preventDefault();
       void handleCreateReminder();
     }
@@ -150,7 +165,7 @@ export function ReminderPanelContent() {
             size="icon"
             className={cn('h-9 w-9 shrink-0')}
             onClick={handleCreateReminder}
-            disabled={!newText.trim()}
+            disabled={!newText.trim() || isReminderSubmitting}
           >
             <Plus className={cn('h-4 w-4')} />
           </Button>

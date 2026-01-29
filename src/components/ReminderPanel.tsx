@@ -159,7 +159,8 @@ export function ReminderPanelContent() {
             value={newText}
             onChange={(event) => setNewText(event.target.value)}
             onKeyDown={handleKeyDown}
-            className={cn('flex-1 bg-input border-border')}
+            containerClassName={cn('flex-1')}
+            className={cn('bg-input border-border')}
           />
           <Button
             size="icon"

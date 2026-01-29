@@ -7,6 +7,7 @@ import type {
   IssueRecord,
   WikiPageRecord,
   MemoRecord,
+  DailyLogRecord,
   ReminderRecord,
   FeedbackRecord,
 } from '@/types/ipc';
@@ -75,6 +76,15 @@ declare global {
           id: string;
           updates: Partial<Pick<MemoRecord, 'title' | 'content' | 'updatedAt'>>;
         }) => Promise<Result<MemoRecord>>;
+        delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
+      };
+      dailyLogs: {
+        list: (input: { projectId: string }) => Promise<Result<DailyLogRecord[]>>;
+        create: (input: DailyLogRecord) => Promise<Result<DailyLogRecord>>;
+        update: (input: {
+          id: string;
+          updates: Partial<Pick<DailyLogRecord, 'content' | 'updatedAt'>>;
+        }) => Promise<Result<DailyLogRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
       };
       reminders: {

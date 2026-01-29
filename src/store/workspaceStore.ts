@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { Project, Task, WikiPage, MemoState, Issue, Memo, Reminder } from '@/types/workspace';
+import { Project, Task, WikiPage, MemoState, Issue, Memo, Reminder, DailyLog } from '@/types/workspace';
 import {
   IssueRecord,
   MemoRecord,
   ProjectRecord,
+  DailyLogRecord,
   ReminderRecord,
   Result,
   TaskRecord,
@@ -17,13 +18,14 @@ interface WorkspaceState extends MemoState {
   issues: Issue[];
   wikiPages: WikiPage[];
   reminders: Reminder[];
-  activeTab: 'kanban' | 'wiki' | 'memo' | 'issues';
+  dailyLogs: DailyLog[];
+  activeTab: 'kanban' | 'wiki' | 'memo' | 'issues' | 'calendar';
   isHydrated: boolean;
 
   // Actions
   hydrate: () => Promise<void>;
   setSelectedProject: (id: string | null) => Promise<void>;
-  setActiveTab: (tab: 'kanban' | 'wiki' | 'memo' | 'issues') => void;
+  setActiveTab: (tab: 'kanban' | 'wiki' | 'memo' | 'issues' | 'calendar') => void;
   addProject: (project: Project) => Promise<Project | null>;
   deleteProject: (projectId: string) => Promise<void>;
   addTask: (task: Task) => Promise<Task | null>;
@@ -47,6 +49,12 @@ interface WorkspaceState extends MemoState {
     snapshot: Pick<Memo, 'content' | 'updatedAt' | 'status'>
   ) => void;
   deleteMemo: (memoId: string) => Promise<void>;
+  addDailyLog: (log: DailyLog) => Promise<DailyLog | null>;
+  updateDailyLog: (
+    logId: string,
+    updates: Pick<DailyLog, 'content'>
+  ) => Promise<boolean>;
+  deleteDailyLog: (logId: string) => Promise<boolean>;
   addReminder: (reminder: Reminder) => Promise<Reminder | null>;
   updateReminder: (
     reminderId: string,
@@ -107,6 +115,15 @@ const mapMemo = (record: MemoRecord): Memo => ({
   status: 'saved',
 });
 
+const mapDailyLog = (record: DailyLogRecord): DailyLog => ({
+  id: record.id,
+  projectId: record.projectId,
+  date: record.date,
+  content: record.content,
+  createdAt: new Date(record.createdAt),
+  updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
+});
+
 const mapReminder = (record: ReminderRecord): Reminder => ({
   id: record.id,
   projectId: record.projectId,
@@ -142,6 +159,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   issues: [],
   wikiPages: [],
   reminders: [],
+  dailyLogs: [],
   memos: [],
   selectedMemoId: null,
   activeTab: 'kanban',
@@ -174,6 +192,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         issues: [],
         wikiPages: [],
         reminders: [],
+        dailyLogs: [],
         memos: [],
         selectedMemoId: null,
       });
@@ -186,18 +205,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         issues: [],
         wikiPages: [],
         reminders: [],
+        dailyLogs: [],
         memos: [],
         selectedMemoId: null,
       });
       return;
     }
 
-    const [tasksResult, issuesResult, wikiResult, memoResult, reminderResult] = await Promise.all([
+    const [tasksResult, issuesResult, wikiResult, memoResult, reminderResult, dailyLogResult] = await Promise.all([
       api.tasks.list({ projectId: id }),
       api.issues.list({ projectId: id }),
       api.wiki.list({ projectId: id }),
       api.memos.list({ projectId: id }),
       api.reminders.list({ projectId: id }),
+      api.dailyLogs.list({ projectId: id }),
     ]);
 
     if (!tasksResult.ok) {
@@ -215,12 +236,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!reminderResult.ok) {
       reportError(reminderResult, 'reminders:list');
     }
+    if (!dailyLogResult.ok) {
+      reportError(dailyLogResult, 'dailyLogs:list');
+    }
 
     const tasks = tasksResult.ok ? tasksResult.data.map(mapTask) : [];
     const issues = issuesResult.ok ? issuesResult.data.map(mapIssue) : [];
     const wikiPages = wikiResult.ok ? wikiResult.data.map(mapWikiPage) : [];
     const memos = memoResult.ok ? memoResult.data.map(mapMemo) : [];
     const reminders = reminderResult.ok ? reminderResult.data.map(mapReminder) : [];
+    const dailyLogs = dailyLogResult.ok ? dailyLogResult.data.map(mapDailyLog) : [];
     const nextMemoId = memos[0]?.id ?? null;
 
     set({
@@ -229,6 +254,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       issues,
       wikiPages,
       reminders,
+      dailyLogs,
       memos,
       selectedMemoId: nextMemoId,
     });
@@ -610,6 +636,68 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       selectedMemoId:
         current.selectedMemoId === memoId ? nextSelectedMemoId : current.selectedMemoId,
     }));
+  },
+
+  addDailyLog: async (log) => {
+    const api = ensureApi();
+    if (!api) {
+      return null;
+    }
+    const payload: DailyLogRecord = {
+      id: log.id,
+      projectId: log.projectId,
+      date: log.date,
+      content: log.content,
+      createdAt: log.createdAt.getTime(),
+      updatedAt: log.updatedAt ? log.updatedAt.getTime() : null,
+    };
+    const result = await api.dailyLogs.create(payload);
+    if (!result.ok) {
+      reportError(result, 'dailyLogs:create');
+      return null;
+    }
+    const created = mapDailyLog(result.data);
+    set((state) => ({ dailyLogs: [...state.dailyLogs, created] }));
+    return created;
+  },
+
+  updateDailyLog: async (logId, updates) => {
+    const api = ensureApi();
+    if (!api) {
+      return false;
+    }
+    const result = await api.dailyLogs.update({
+      id: logId,
+      updates: {
+        content: updates.content,
+        updatedAt: Date.now(),
+      },
+    });
+    if (!result.ok) {
+      reportError(result, 'dailyLogs:update');
+      return false;
+    }
+    const updated = mapDailyLog(result.data);
+    set((state) => ({
+      dailyLogs: state.dailyLogs.map((log) => (log.id === logId ? updated : log)),
+    }));
+    return true;
+  },
+
+  deleteDailyLog: async (logId) => {
+    const api = ensureApi();
+    if (!api) {
+      return false;
+    }
+    const result = await api.dailyLogs.delete({ id: logId });
+    if (!result.ok) {
+      reportError(result, 'dailyLogs:delete');
+      return false;
+    }
+    set((state) => ({
+      dailyLogs: state.dailyLogs.filter((log) => log.id !== logId),
+    }));
+    return true;
   },
 
   addReminder: async (reminder) => {

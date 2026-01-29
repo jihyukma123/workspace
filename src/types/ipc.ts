@@ -53,6 +53,15 @@ export type MemoRecord = {
   updatedAt: number | null;
 };
 
+export type DailyLogRecord = {
+  id: string;
+  projectId: string;
+  date: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number | null;
+};
+
 export type ReminderRecord = {
   id: string;
   projectId: string;

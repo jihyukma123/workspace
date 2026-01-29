@@ -97,4 +97,22 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_reminders_project_status ON reminders(project_id, status);
     `,
   },
+  {
+    id: 4,
+    name: 'daily_logs',
+    up: `
+      CREATE TABLE IF NOT EXISTS daily_logs (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_logs_project_date ON daily_logs(project_id, date);
+      CREATE INDEX IF NOT EXISTS idx_daily_logs_project_created ON daily_logs(project_id, created_at);
+    `,
+  },
 ];

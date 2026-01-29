@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const idSchema = z.string().min(1);
 const timestampSchema = z.number().int().nonnegative();
+const dateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const schemas = {
   feedbackCreate: z.object({
@@ -117,6 +118,24 @@ export const schemas = {
     }),
   }),
   memoDelete: z.object({ id: idSchema }),
+  dailyLogCreate: z.object({
+    id: idSchema,
+    projectId: idSchema,
+    date: dateKeySchema,
+    content: z.string(),
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema.nullable().optional(),
+  }),
+  dailyLogUpdate: z.object({
+    id: idSchema,
+    updates: z.object({
+      content: z.string().optional(),
+      updatedAt: timestampSchema.nullable().optional(),
+    }).refine((value) => Object.keys(value).length > 0, {
+      message: 'No updates provided',
+    }),
+  }),
+  dailyLogDelete: z.object({ id: idSchema }),
   reminderCreate: z.object({
     id: idSchema,
     projectId: idSchema,

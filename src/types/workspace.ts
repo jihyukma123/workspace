@@ -52,6 +52,15 @@ export interface Memo {
   status: MemoStatus;
 }
 
+export interface DailyLog {
+  id: string;
+  projectId: string;
+  date: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
 export interface MemoState {
   memos: Memo[];
   selectedMemoId: string | null;

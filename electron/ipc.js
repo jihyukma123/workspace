@@ -52,6 +52,15 @@ const mapMemo = (row) => ({
   updatedAt: row.updated_at ?? null,
 });
 
+const mapDailyLog = (row) => ({
+  id: row.id,
+  projectId: row.project_id,
+  date: row.date,
+  content: row.content,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at ?? null,
+});
+
 const mapReminder = (row) => ({
   id: row.id,
   projectId: row.project_id,
@@ -563,6 +572,93 @@ export const registerIpcHandlers = (ipcMain, db) => {
       return ok({ id: parsed.data.id });
     } catch (error) {
       return handleDbError(error, 'Failed to delete memo');
+    }
+  });
+
+  ipcMain.handle('dailyLogs:list', (_event, input) => {
+    const parsed = parseInput(schemas.projectId, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const rows = db
+        .prepare('SELECT * FROM daily_logs WHERE project_id = ? ORDER BY date DESC')
+        .all(parsed.data.projectId);
+      return ok(rows.map(mapDailyLog));
+    } catch (error) {
+      return handleDbError(error, 'Failed to load daily logs');
+    }
+  });
+
+  ipcMain.handle('dailyLogs:create', (_event, input) => {
+    const parsed = parseInput(schemas.dailyLogCreate, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const payload = parsed.data;
+      db.prepare(
+        `INSERT INTO daily_logs
+          (id, project_id, date, content, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(
+        payload.id,
+        payload.projectId,
+        payload.date,
+        payload.content,
+        payload.createdAt,
+        payload.updatedAt ?? null
+      );
+      const row = db.prepare('SELECT * FROM daily_logs WHERE id = ?').get(payload.id);
+      return ok(mapDailyLog(row));
+    } catch (error) {
+      return handleDbError(error, 'Failed to create daily log');
+    }
+  });
+
+  ipcMain.handle('dailyLogs:update', (_event, input) => {
+    const parsed = parseInput(schemas.dailyLogUpdate, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const { id, updates } = parsed.data;
+      const fields = [];
+      const values = [];
+      if (updates.content !== undefined) {
+        fields.push('content = ?');
+        values.push(updates.content);
+      }
+      const updatedAt = updates.updatedAt ?? Date.now();
+      fields.push('updated_at = ?');
+      values.push(updatedAt);
+
+      values.push(id);
+      const statement = `UPDATE daily_logs SET ${fields.join(', ')} WHERE id = ?`;
+      const info = db.prepare(statement).run(...values);
+      if (info.changes === 0) {
+        return err('NOT_FOUND', 'Daily log not found');
+      }
+      const row = db.prepare('SELECT * FROM daily_logs WHERE id = ?').get(id);
+      return ok(mapDailyLog(row));
+    } catch (error) {
+      return handleDbError(error, 'Failed to update daily log');
+    }
+  });
+
+  ipcMain.handle('dailyLogs:delete', (_event, input) => {
+    const parsed = parseInput(schemas.dailyLogDelete, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const info = db.prepare('DELETE FROM daily_logs WHERE id = ?').run(parsed.data.id);
+      if (info.changes === 0) {
+        return err('NOT_FOUND', 'Daily log not found');
+      }
+      return ok({ id: parsed.data.id });
+    } catch (error) {
+      return handleDbError(error, 'Failed to delete daily log');
     }
   });
 

@@ -33,6 +33,12 @@ contextBridge.exposeInMainWorld('workspaceApi', {
     update: (input) => invoke('memos:update', input),
     delete: (input) => invoke('memos:delete', input),
   },
+  dailyLogs: {
+    list: (input) => invoke('dailyLogs:list', input),
+    create: (input) => invoke('dailyLogs:create', input),
+    update: (input) => invoke('dailyLogs:update', input),
+    delete: (input) => invoke('dailyLogs:delete', input),
+  },
   reminders: {
     list: (input) => invoke('reminders:list', input),
     create: (input) => invoke('reminders:create', input),

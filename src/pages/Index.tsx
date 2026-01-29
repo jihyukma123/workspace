@@ -233,7 +233,7 @@ const Index = () => {
                           value={newTask.priority}
                           onValueChange={(value: Task['priority']) => setNewTask({ ...newTask, priority: value })}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className={cn("bg-input border-border")}>
                             <SelectValue placeholder="Priority" />
                           </SelectTrigger>
                           <SelectContent>
@@ -295,12 +295,13 @@ const Index = () => {
                           placeholder="Description (optional)"
                           value={newIssue.description}
                           onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
+                          className={cn("bg-input border-border")}
                         />
                         <Select
                           value={newIssue.status}
                           onValueChange={(value: Issue['status']) => setNewIssue({ ...newIssue, status: value })}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className={cn("bg-input border-border")}>
                             <SelectValue placeholder="Status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -313,7 +314,7 @@ const Index = () => {
                           value={newIssue.priority}
                           onValueChange={(value: Issue['priority']) => setNewIssue({ ...newIssue, priority: value })}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className={cn("bg-input border-border")}>
                             <SelectValue placeholder="Priority" />
                           </SelectTrigger>
                           <SelectContent>

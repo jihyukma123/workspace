@@ -5,6 +5,7 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
 import { IssuesView } from "@/components/IssuesView";
+import { DailyLogView } from "@/components/DailyLogView";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Plus } from "lucide-react";
 import { Issue, Task } from "@/types/workspace";
@@ -108,6 +109,8 @@ const Index = () => {
         return <MemoEditor />;
       case 'issues':
         return <IssuesView onAddIssue={() => setIsIssueDialogOpen(true)} />;
+      case 'calendar':
+        return <DailyLogView />;
       default:
         return <KanbanBoard />;
     }
@@ -123,6 +126,9 @@ const Index = () => {
         break;
       case "/issues":
         setActiveTab("issues");
+        break;
+      case "/calendar":
+        setActiveTab("calendar");
         break;
       default:
         setActiveTab("kanban");

@@ -4,6 +4,7 @@ import {
   BookOpen, 
   StickyNote, 
   AlertCircle, 
+  CalendarDays,
   ChevronDown,
   FolderKanban,
   Check,
@@ -37,6 +38,7 @@ const menuItems = [
   { id: "wiki", label: "Wiki", icon: BookOpen, path: "/wiki" },
   { id: "memo", label: "Memo", icon: StickyNote, path: "/memo" },
   { id: "issues", label: "Issues", icon: AlertCircle, path: "/issues" },
+  { id: "calendar", label: "Calendar", icon: CalendarDays, path: "/calendar" },
 ];
 
 const getProjectColor = (index: number) => {

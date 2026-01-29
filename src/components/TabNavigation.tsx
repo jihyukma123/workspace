@@ -1,4 +1,4 @@
-import { Kanban, BookOpen, StickyNote } from 'lucide-react';
+import { Kanban, BookOpen, StickyNote, CalendarDays } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ const tabs = [
   { id: 'kanban' as const, label: 'Kanban', icon: Kanban },
   { id: 'wiki' as const, label: 'Wiki', icon: BookOpen },
   { id: 'memo' as const, label: 'Memo', icon: StickyNote },
+  { id: 'calendar' as const, label: 'Calendar', icon: CalendarDays },
 ];
 
 export function TabNavigation() {

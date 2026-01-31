@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
 } from "@/components/ui/card";
 import {
@@ -198,10 +197,6 @@ export function DailyLogView() {
     }
   };
 
-  const updatedAtLabel = selectedLog?.updatedAt
-    ? selectedLog.updatedAt.toLocaleString()
-    : (selectedLog?.createdAt?.toLocaleString() ?? "—");
-
   return (
     <div className="flex-1 flex flex-col p-6 overflow-hidden">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -310,9 +305,14 @@ export function DailyLogView() {
                   {formattedDate}
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                Last updated: {updatedAtLabel}
-              </div>
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || isSaving}
+                className="gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? "Saving..." : "Save Log"}
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-4 flex-1">
@@ -326,16 +326,6 @@ export function DailyLogView() {
               className="min-h-[420px] resize-none bg-input border-border"
             />
           </CardContent>
-          <CardFooter className="p-4 border-t border-border flex items-center justify-end gap-3">
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              className="gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? "Saving..." : "Save Log"}
-            </Button>
-          </CardFooter>
         </Card>
       </div>
 

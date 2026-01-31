@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { ToastAction } from "@/components/ui/toast";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -390,14 +391,10 @@ export function ReminderPanelContent() {
                         )}
                       >
                         <Bell className={cn("h-3 w-3")} />
-                        <span>
-                          {reminder.remindAt!.toLocaleString("ko-KR", {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                        <RelativeTime
+                          date={reminder.remindAt!}
+                          reminderFormat
+                        />
                       </div>
                     )}
                   </div>

@@ -16,6 +16,7 @@ import {
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { RelativeTime } from "@/components/ui/relative-time";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -569,14 +570,6 @@ export function WikiEditor() {
     setDropPosition(null);
   }, []);
 
-  const formatUpdatedAt = (date: Date) => {
-    return date.toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   return (
     <div
       className="flex-1 flex gap-6 p-6 h-full min-h-0"
@@ -698,7 +691,7 @@ export function WikiEditor() {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     <span>
-                      Updated {formatUpdatedAt(selectedPage.updatedAt)}
+                      Updated <RelativeTime date={selectedPage.updatedAt} />
                     </span>
                   </div>
                 </div>

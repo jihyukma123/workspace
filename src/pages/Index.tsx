@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { KanbanBoard } from "@/components/KanbanBoard";
@@ -6,7 +6,9 @@ import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
 import { IssuesView } from "@/components/IssuesView";
 import { DailyLogView } from "@/components/DailyLogView";
+import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { useWorkspaceStore } from "@/store/workspaceStore";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { Plus } from "lucide-react";
 import { Issue, Task } from "@/types/workspace";
 import {
@@ -58,6 +60,35 @@ const Index = () => {
   });
   const [isIssueSubmitting, setIsIssueSubmitting] = useState(false);
   const issueSubmitLock = useRef(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+
+  // Keyboard shortcut handlers
+  const handleNewItem = useCallback(() => {
+    if (!selectedProjectId) return;
+    switch (activeTab) {
+      case "kanban":
+        setIsTaskDialogOpen(true);
+        break;
+      case "issues":
+        setIsIssueDialogOpen(true);
+        break;
+      case "wiki":
+        window.dispatchEvent(new CustomEvent("shortcut:new-wiki-page"));
+        break;
+      case "memo":
+        window.dispatchEvent(new CustomEvent("shortcut:new-memo"));
+        break;
+      default:
+        break;
+    }
+  }, [activeTab, selectedProjectId]);
+
+  useKeyboardShortcuts({
+    onNewItem: handleNewItem,
+    onTabChange: setActiveTab,
+    onShowHelp: () => setIsHelpModalOpen(true),
+    enabled: !!selectedProjectId,
+  });
 
   const handleAddTask = async () => {
     if (!selectedProjectId || !newTask.title.trim()) {
@@ -411,6 +442,12 @@ const Index = () => {
         {/* Content */}
         <div className="flex-1 min-h-0 overflow-hidden">{renderContent()}</div>
       </div>
+
+      {/* Keyboard Shortcuts Help Modal */}
+      <KeyboardShortcutsModal
+        open={isHelpModalOpen}
+        onOpenChange={setIsHelpModalOpen}
+      />
     </MainLayout>
   );
 };

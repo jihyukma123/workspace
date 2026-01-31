@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { StickyNote, Save, Clock, Plus, Edit2, X, Trash2 } from 'lucide-react';
-import { useWorkspaceStore } from '@/store/workspaceStore';
-import { Textarea } from '@/components/ui/textarea';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { StickyNote, Save, Clock, Plus, Edit2, X, Trash2 } from "lucide-react";
+import { useWorkspaceStore } from "@/store/workspaceStore";
+import { Textarea } from "@/components/ui/textarea";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,10 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
-import { renderMarkdown } from '@/components/markdown/renderMarkdown';
-import { MemoStatus } from '@/types/workspace';
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { renderMarkdown } from "@/components/markdown/renderMarkdown";
+import { MemoStatus } from "@/types/workspace";
 
 type MemoSnapshot = {
   id: string;
@@ -39,16 +39,30 @@ export function MemoEditor() {
 
   const projectMemos = useMemo(
     () => memos.filter((memo) => memo.projectId === selectedProjectId),
-    [memos, selectedProjectId]
+    [memos, selectedProjectId],
   );
 
-  const activeMemo = projectMemos.find((memo) => memo.id === selectedMemoId) ?? null;
+  const activeMemo =
+    projectMemos.find((memo) => memo.id === selectedMemoId) ?? null;
   const [isEditing, setIsEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState<MemoSnapshot | null>(null);
   const [isMemoSubmitting, setIsMemoSubmitting] = useState(false);
   const [isMemoSaving, setIsMemoSaving] = useState(false);
   const memoSubmitLock = useRef(false);
   const memoSaveLock = useRef(false);
+
+  // Listen for keyboard shortcut event
+  useEffect(() => {
+    const handleShortcut = () => {
+      if (!selectedProjectId || memoSubmitLock.current) return;
+      handleAddMemoRef.current?.();
+    };
+    window.addEventListener("shortcut:new-memo", handleShortcut);
+    return () =>
+      window.removeEventListener("shortcut:new-memo", handleShortcut);
+  }, [selectedProjectId]);
+
+  const handleAddMemoRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (!selectedProjectId) {
@@ -63,7 +77,13 @@ export function MemoEditor() {
     if (!activeMemo) {
       setSelectedMemoId(projectMemos[0].id);
     }
-  }, [activeMemo, projectMemos, selectedMemoId, selectedProjectId, setSelectedMemoId]);
+  }, [
+    activeMemo,
+    projectMemos,
+    selectedMemoId,
+    selectedProjectId,
+    setSelectedMemoId,
+  ]);
 
   useEffect(() => {
     if (!activeMemo || (editSnapshot && editSnapshot.id !== activeMemo.id)) {
@@ -74,7 +94,7 @@ export function MemoEditor() {
 
   // Auto-save after 2 seconds of inactivity
   useEffect(() => {
-    if (!activeMemo || !isEditing || activeMemo.status !== 'unsaved') {
+    if (!activeMemo || !isEditing || activeMemo.status !== "unsaved") {
       return;
     }
     const timer = setTimeout(() => {
@@ -86,33 +106,33 @@ export function MemoEditor() {
 
   const formatTime = (date: Date | null) => {
     if (!date) {
-      return '—';
+      return "—";
     }
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   const statusCopy = !activeMemo
-    ? 'No memo selected'
-    : activeMemo.status === 'saved'
-    ? 'All changes saved'
-    : activeMemo.status === 'saving'
-    ? 'Saving changes...'
-    : 'Unsaved changes';
+    ? "No memo selected"
+    : activeMemo.status === "saved"
+      ? "All changes saved"
+      : activeMemo.status === "saving"
+        ? "Saving changes..."
+        : "Unsaved changes";
 
   const saveButtonLabel = !activeMemo
-    ? 'Save'
-    : activeMemo.status === 'saved'
-    ? 'Saved'
-    : activeMemo.status === 'saving'
-    ? 'Saving...'
-    : 'Save';
+    ? "Save"
+    : activeMemo.status === "saved"
+      ? "Saved"
+      : activeMemo.status === "saving"
+        ? "Saving..."
+        : "Save";
 
   const statusDotClass = cn(
-    'w-2 h-2 rounded-full transition-all duration-200',
-    activeMemo?.status === 'saved' && 'bg-status-done',
-    activeMemo?.status === 'saving' && 'bg-status-progress animate-pulse',
-    activeMemo?.status === 'unsaved' && 'bg-status-todo',
-    !activeMemo && 'bg-muted'
+    "w-2 h-2 rounded-full transition-all duration-200",
+    activeMemo?.status === "saved" && "bg-status-done",
+    activeMemo?.status === "saving" && "bg-status-progress animate-pulse",
+    activeMemo?.status === "unsaved" && "bg-status-todo",
+    !activeMemo && "bg-muted",
   );
 
   const handleAddMemo = async () => {
@@ -129,11 +149,11 @@ export function MemoEditor() {
       const created = await addMemo({
         id: `memo-${now.getTime()}`,
         projectId: selectedProjectId,
-        title: 'Untitled Memo',
-        content: '',
+        title: "Untitled Memo",
+        content: "",
         createdAt: now,
         updatedAt: null,
-        status: 'unsaved',
+        status: "unsaved",
       });
       if (!created) {
         return;
@@ -143,6 +163,9 @@ export function MemoEditor() {
       memoSubmitLock.current = false;
     }
   };
+
+  // Keep ref updated for shortcut handler
+  handleAddMemoRef.current = handleAddMemo;
 
   const handleEdit = () => {
     if (!activeMemo) {
@@ -229,10 +252,10 @@ export function MemoEditor() {
                       type="button"
                       onClick={() => handleSelectMemo(memo.id)}
                       className={cn(
-                        'w-full h-auto items-start justify-start text-left rounded-lg px-3 py-2 transition-all duration-200',
+                        "w-full h-auto items-start justify-start text-left rounded-lg px-3 py-2 transition-all duration-200",
                         isActive
-                          ? 'border-primary bg-accent/20'
-                          : 'border-border bg-background hover:bg-accent/30'
+                          ? "border-primary bg-accent/20"
+                          : "border-border bg-background hover:bg-accent/30",
                       )}
                       variant="outline"
                       size="sm"
@@ -240,7 +263,7 @@ export function MemoEditor() {
                       <div className="w-full space-y-1">
                         <div className="flex items-start justify-between gap-2">
                           <span className="font-mono text-sm text-foreground line-clamp-1">
-                            {memo.title || 'Untitled Memo'}
+                            {memo.title || "Untitled Memo"}
                           </span>
                           <span className="shrink-0 text-[10px] text-muted-foreground">
                             {formatTime(memo.updatedAt ?? memo.createdAt)}
@@ -248,18 +271,18 @@ export function MemoEditor() {
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <span className="rounded-full bg-muted px-2 py-0.5 font-mono">
-                            {memo.status === 'saved'
-                              ? 'Saved'
-                              : memo.status === 'saving'
-                              ? 'Saving'
-                              : 'Unsaved'}
+                            {memo.status === "saved"
+                              ? "Saved"
+                              : memo.status === "saving"
+                                ? "Saving"
+                                : "Unsaved"}
                           </span>
                           <span className="line-clamp-1">
-                            {memo.updatedAt ? 'Updated' : 'Created'}
+                            {memo.updatedAt ? "Updated" : "Created"}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2">
-                          {memo.content || 'No content yet'}
+                          {memo.content || "No content yet"}
                         </p>
                       </div>
                     </Button>
@@ -280,34 +303,37 @@ export function MemoEditor() {
             </div>
             <div>
               <h2 className="font-mono text-lg font-bold text-primary">
-                {activeMemo?.title || 'Untitled Memo'}
+                {activeMemo?.title || "Untitled Memo"}
               </h2>
               <p className="text-xs text-muted-foreground">
                 Capture your thoughts instantly
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
               <span>
-                Last saved: {formatTime(activeMemo?.updatedAt ?? activeMemo?.createdAt ?? null)}
+                Last saved:{" "}
+                {formatTime(
+                  activeMemo?.updatedAt ?? activeMemo?.createdAt ?? null,
+                )}
               </span>
             </div>
             {isEditing ? (
               <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCancel}
-                >
+                <Button variant="secondary" size="sm" onClick={handleCancel}>
                   <X className="w-4 h-4 mr-1" />
                   Read Mode
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={!activeMemo || activeMemo.status !== 'unsaved' || isMemoSaving}
+                  disabled={
+                    !activeMemo ||
+                    activeMemo.status !== "unsaved" ||
+                    isMemoSaving
+                  }
                   size="sm"
                   variant="primary"
                 >
@@ -341,14 +367,15 @@ export function MemoEditor() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete this memo?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. The memo will be permanently removed.
+                        This action cannot be undone. The memo will be
+                        permanently removed.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDelete}
-                        className={buttonVariants({ variant: 'destructive' })}
+                        className={buttonVariants({ variant: "destructive" })}
                       >
                         Delete
                       </AlertDialogAction>
@@ -371,12 +398,12 @@ export function MemoEditor() {
           <div
             className={cn(
               "absolute inset-0 rounded-lg border border-border overflow-hidden",
-              "lg:shadow-sm"
+              "lg:shadow-sm",
             )}
           >
             {isEditing ? (
               <Textarea
-                value={activeMemo?.content ?? ''}
+                value={activeMemo?.content ?? ""}
                 onChange={(e) => {
                   if (!activeMemo) {
                     return;
@@ -393,7 +420,7 @@ You can use Markdown:
                 disabled={!activeMemo}
                 className={cn(
                   "h-full w-full resize-none text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 scrollbar-thin",
-                  "lg:text-base lg:leading-7"
+                  "lg:text-base lg:leading-7",
                 )}
               />
             ) : (
@@ -415,8 +442,9 @@ You can use Markdown:
         {/* Tips */}
         <div className="mt-4 lg:mt-2 p-3 rounded-lg bg-muted/30 border border-border">
           <p className="text-xs text-muted-foreground">
-            <span className="text-primary font-medium">TIP:</span> Edits auto-save after 2
-            seconds of inactivity. Use Markdown syntax for formatting.
+            <span className="text-primary font-medium">TIP:</span> Edits
+            auto-save after 2 seconds of inactivity. Use Markdown syntax for
+            formatting.
           </p>
         </div>
       </div>

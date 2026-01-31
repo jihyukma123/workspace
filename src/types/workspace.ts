@@ -10,8 +10,8 @@ export interface Task {
   projectId: string;
   title: string;
   description: string;
-  status: 'backlog' | 'in-progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: "backlog" | "in-progress" | "done";
+  priority: "low" | "medium" | "high";
   createdAt: Date;
   updatedAt?: Date | null;
   position?: number | null;
@@ -22,10 +22,17 @@ export interface Issue {
   projectId: string;
   title: string;
   description: string;
-  status: 'todo' | 'in-progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: "todo" | "in-progress" | "done";
+  priority: "low" | "medium" | "high";
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IssueComment {
+  id: string;
+  issueId: string;
+  body: string;
+  createdAt: Date;
 }
 
 export interface WikiPage {
@@ -40,7 +47,7 @@ export interface WikiPage {
   position?: number | null;
 }
 
-export type MemoStatus = 'saved' | 'unsaved' | 'saving';
+export type MemoStatus = "saved" | "unsaved" | "saving";
 
 export interface Memo {
   id: string;
@@ -66,7 +73,7 @@ export interface MemoState {
   selectedMemoId: string | null;
 }
 
-export type ReminderStatus = 'todo' | 'progress' | 'done';
+export type ReminderStatus = "todo" | "progress" | "done";
 
 export interface Reminder {
   id: string;
@@ -78,7 +85,7 @@ export interface Reminder {
 }
 
 export type KanbanColumn = {
-  id: Task['status'];
+  id: Task["status"];
   title: string;
-  color: 'primary' | 'secondary' | 'warning' | 'success';
+  color: "primary" | "secondary" | "warning" | "success";
 };

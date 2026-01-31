@@ -63,12 +63,12 @@ CREATE INDEX IF NOT EXISTS idx_memos_project ON memos(project_id);
 export const migrations = [
   {
     id: 1,
-    name: 'init',
+    name: "init",
     up: migrationSql,
   },
   {
     id: 2,
-    name: 'feedback',
+    name: "feedback",
     up: `
       CREATE TABLE IF NOT EXISTS feedback (
         id TEXT PRIMARY KEY,
@@ -81,7 +81,7 @@ export const migrations = [
   },
   {
     id: 3,
-    name: 'reminders',
+    name: "reminders",
     up: `
       CREATE TABLE IF NOT EXISTS reminders (
         id TEXT PRIMARY KEY,
@@ -99,7 +99,7 @@ export const migrations = [
   },
   {
     id: 4,
-    name: 'daily_logs',
+    name: "daily_logs",
     up: `
       CREATE TABLE IF NOT EXISTS daily_logs (
         id TEXT PRIMARY KEY,
@@ -113,6 +113,21 @@ export const migrations = [
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_logs_project_date ON daily_logs(project_id, date);
       CREATE INDEX IF NOT EXISTS idx_daily_logs_project_created ON daily_logs(project_id, created_at);
+    `,
+  },
+  {
+    id: 5,
+    name: "issue_comments",
+    up: `
+      CREATE TABLE IF NOT EXISTS issue_comments (
+        id TEXT PRIMARY KEY,
+        issue_id TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_issue_comments_issue_created ON issue_comments(issue_id, created_at);
     `,
   },
 ];

@@ -28,19 +28,33 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const Index = () => {
-  const { activeTab, selectedProjectId, projects, addTask, addIssue, setActiveTab, hydrate, isHydrated } = useWorkspaceStore();
+  const {
+    activeTab,
+    selectedProjectId,
+    projects,
+    addTask,
+    addIssue,
+    setActiveTab,
+    hydrate,
+    isHydrated,
+    issues,
+  } = useWorkspaceStore();
   const location = useLocation();
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' as Task['priority'] });
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    priority: "medium" as Task["priority"],
+  });
   const [isTaskSubmitting, setIsTaskSubmitting] = useState(false);
   const taskSubmitLock = useRef(false);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [newIssue, setNewIssue] = useState({
-    title: '',
-    description: '',
-    priority: 'medium' as Issue['priority'],
-    status: 'todo' as Issue['status'],
+    title: "",
+    description: "",
+    priority: "medium" as Issue["priority"],
+    status: "todo" as Issue["status"],
   });
   const [isIssueSubmitting, setIsIssueSubmitting] = useState(false);
   const issueSubmitLock = useRef(false);
@@ -60,12 +74,12 @@ const Index = () => {
         projectId: selectedProjectId,
         title: newTask.title,
         description: newTask.description,
-        status: 'backlog',
+        status: "backlog",
         priority: newTask.priority,
         createdAt: new Date(),
       });
       if (created) {
-        setNewTask({ title: '', description: '', priority: 'medium' });
+        setNewTask({ title: "", description: "", priority: "medium" });
         setIsTaskDialogOpen(false);
       }
     } finally {
@@ -85,8 +99,15 @@ const Index = () => {
 
     setIsIssueSubmitting(true);
     try {
+      // Calculate next issue number (incremental)
+      const existingNumbers = issues
+        .map((issue) => parseInt(issue.id, 10))
+        .filter((num) => !isNaN(num));
+      const nextNumber =
+        existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+
       const created = await addIssue({
-        id: Date.now().toString(),
+        id: nextNumber.toString(),
         projectId: selectedProjectId,
         title: newIssue.title,
         description: newIssue.description,
@@ -96,7 +117,12 @@ const Index = () => {
         updatedAt: new Date(),
       });
       if (created) {
-        setNewIssue({ title: '', description: '', priority: 'medium', status: 'todo' });
+        setNewIssue({
+          title: "",
+          description: "",
+          priority: "medium",
+          status: "todo",
+        });
         setIsIssueDialogOpen(false);
       }
     } finally {
@@ -117,7 +143,8 @@ const Index = () => {
               Welcome to Workspace
             </h2>
             <p className="text-muted-foreground max-w-md">
-              Select a project from the sidebar to view its Kanban board, Wiki, and Memo.
+              Select a project from the sidebar to view its Kanban board, Wiki,
+              and Memo.
             </p>
           </div>
         </div>
@@ -125,15 +152,15 @@ const Index = () => {
     }
 
     switch (activeTab) {
-      case 'kanban':
+      case "kanban":
         return <KanbanBoard />;
-      case 'wiki':
+      case "wiki":
         return <WikiEditor />;
-      case 'memo':
+      case "memo":
         return <MemoEditor />;
-      case 'issues':
+      case "issues":
         return <IssuesView onAddIssue={() => setIsIssueDialogOpen(true)} />;
-      case 'calendar':
+      case "calendar":
         return <DailyLogView />;
       default:
         return <KanbanBoard />;
@@ -173,13 +200,17 @@ const Index = () => {
         {selectedProjectId && (
           <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
             <div>
-              <h1 className="text-xl font-semibold text-foreground">{selectedProject?.name || 'Workspace'}</h1>
-              <p className="text-sm text-muted-foreground">{selectedProject?.description || 'Select a project'}</p>
+              <h1 className="text-xl font-semibold text-foreground">
+                {selectedProject?.name || "Workspace"}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {selectedProject?.description || "Select a project"}
+              </p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               {/* Add Task */}
-              {activeTab === 'kanban' && (
+              {activeTab === "kanban" && (
                 <>
                   <Button
                     onClick={() => setIsTaskDialogOpen(true)}
@@ -189,22 +220,25 @@ const Index = () => {
                     <Plus className="w-4 h-4" />
                     <span className="text-sm font-medium">Add Task</span>
                   </Button>
-                  <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-                  <DialogContent
-                    className="bg-popover border-border"
-                    onKeyDown={(e) => {
-                      if (e.defaultPrevented) {
-                        return;
-                      }
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        if (isTaskSubmitting) {
+                  <Dialog
+                    open={isTaskDialogOpen}
+                    onOpenChange={setIsTaskDialogOpen}
+                  >
+                    <DialogContent
+                      className="bg-popover border-border"
+                      onKeyDown={(e) => {
+                        if (e.defaultPrevented) {
                           return;
                         }
-                        e.preventDefault();
-                        handleAddTask();
-                      }
-                    }}
-                  >
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          if (isTaskSubmitting) {
+                            return;
+                          }
+                          e.preventDefault();
+                          handleAddTask();
+                        }
+                      }}
+                    >
                       <DialogHeader>
                         <DialogTitle>New Task</DialogTitle>
                       </DialogHeader>
@@ -212,9 +246,11 @@ const Index = () => {
                         <AppInput
                           placeholder="Task title"
                           value={newTask.title}
-                          onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                          onChange={(e) =>
+                            setNewTask({ ...newTask, title: e.target.value })
+                          }
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
+                            if (e.key === "Enter" && !e.shiftKey) {
                               if (isTaskSubmitting) {
                                 return;
                               }
@@ -226,19 +262,30 @@ const Index = () => {
                         <Textarea
                           placeholder="Description (optional)"
                           value={newTask.description}
-                          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                          onChange={(e) =>
+                            setNewTask({
+                              ...newTask,
+                              description: e.target.value,
+                            })
+                          }
                           className={cn("bg-input border-border")}
                         />
                         <Select
                           value={newTask.priority}
-                          onValueChange={(value: Task['priority']) => setNewTask({ ...newTask, priority: value })}
+                          onValueChange={(value: Task["priority"]) =>
+                            setNewTask({ ...newTask, priority: value })
+                          }
                         >
-                          <SelectTrigger className={cn("bg-input border-border")}>
+                          <SelectTrigger
+                            className={cn("bg-input border-border")}
+                          >
                             <SelectValue placeholder="Priority" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="low">Low Priority</SelectItem>
-                            <SelectItem value="medium">Medium Priority</SelectItem>
+                            <SelectItem value="medium">
+                              Medium Priority
+                            </SelectItem>
                             <SelectItem value="high">High Priority</SelectItem>
                           </SelectContent>
                         </Select>
@@ -256,7 +303,7 @@ const Index = () => {
               )}
 
               {/* Add Issue */}
-              {activeTab === 'issues' && (
+              {activeTab === "issues" && (
                 <>
                   <Button
                     onClick={() => setIsIssueDialogOpen(true)}
@@ -266,22 +313,25 @@ const Index = () => {
                     <Plus className="w-4 h-4" />
                     <span className="text-sm font-medium">Add Issue</span>
                   </Button>
-                  <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
+                  <Dialog
+                    open={isIssueDialogOpen}
+                    onOpenChange={setIsIssueDialogOpen}
+                  >
                     <DialogContent
                       className="bg-popover border-border"
-                    onKeyDown={(e) => {
-                      if (e.defaultPrevented) {
-                        return;
-                      }
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        if (isIssueSubmitting) {
+                      onKeyDown={(e) => {
+                        if (e.defaultPrevented) {
                           return;
                         }
-                        e.preventDefault();
-                        handleAddIssue();
-                      }
-                    }}
-                  >
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          if (isIssueSubmitting) {
+                            return;
+                          }
+                          e.preventDefault();
+                          handleAddIssue();
+                        }
+                      }}
+                    >
                       <DialogHeader>
                         <DialogTitle>New Issue</DialogTitle>
                       </DialogHeader>
@@ -289,37 +339,56 @@ const Index = () => {
                         <AppInput
                           placeholder="Issue title"
                           value={newIssue.title}
-                          onChange={(e) => setNewIssue({ ...newIssue, title: e.target.value })}
+                          onChange={(e) =>
+                            setNewIssue({ ...newIssue, title: e.target.value })
+                          }
                         />
                         <Textarea
                           placeholder="Description (optional)"
                           value={newIssue.description}
-                          onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
+                          onChange={(e) =>
+                            setNewIssue({
+                              ...newIssue,
+                              description: e.target.value,
+                            })
+                          }
                           className={cn("bg-input border-border")}
                         />
                         <Select
                           value={newIssue.status}
-                          onValueChange={(value: Issue['status']) => setNewIssue({ ...newIssue, status: value })}
+                          onValueChange={(value: Issue["status"]) =>
+                            setNewIssue({ ...newIssue, status: value })
+                          }
                         >
-                          <SelectTrigger className={cn("bg-input border-border")}>
+                          <SelectTrigger
+                            className={cn("bg-input border-border")}
+                          >
                             <SelectValue placeholder="Status" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="todo">Todo</SelectItem>
-                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="in-progress">
+                              In Progress
+                            </SelectItem>
                             <SelectItem value="done">Done</SelectItem>
                           </SelectContent>
                         </Select>
                         <Select
                           value={newIssue.priority}
-                          onValueChange={(value: Issue['priority']) => setNewIssue({ ...newIssue, priority: value })}
+                          onValueChange={(value: Issue["priority"]) =>
+                            setNewIssue({ ...newIssue, priority: value })
+                          }
                         >
-                          <SelectTrigger className={cn("bg-input border-border")}>
+                          <SelectTrigger
+                            className={cn("bg-input border-border")}
+                          >
                             <SelectValue placeholder="Priority" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="low">Low Priority</SelectItem>
-                            <SelectItem value="medium">Medium Priority</SelectItem>
+                            <SelectItem value="medium">
+                              Medium Priority
+                            </SelectItem>
                             <SelectItem value="high">High Priority</SelectItem>
                           </SelectContent>
                         </Select>
@@ -340,9 +409,7 @@ const Index = () => {
         )}
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          {renderContent()}
-        </div>
+        <div className="flex-1 min-h-0 overflow-hidden">{renderContent()}</div>
       </div>
     </MainLayout>
   );

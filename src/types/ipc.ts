@@ -14,8 +14,8 @@ export type TaskRecord = {
   projectId: string;
   title: string;
   description: string;
-  status: 'backlog' | 'in-progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: "backlog" | "in-progress" | "done";
+  priority: "low" | "medium" | "high";
   createdAt: number;
   updatedAt: number | null;
   position: number | null;
@@ -26,10 +26,17 @@ export type IssueRecord = {
   projectId: string;
   title: string;
   description: string;
-  status: 'todo' | 'in-progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: "todo" | "in-progress" | "done";
+  priority: "low" | "medium" | "high";
   createdAt: number;
   updatedAt: number;
+};
+
+export type IssueCommentRecord = {
+  id: string;
+  issueId: string;
+  body: string;
+  createdAt: number;
 };
 
 export type WikiPageRecord = {
@@ -66,7 +73,7 @@ export type ReminderRecord = {
   id: string;
   projectId: string;
   text: string;
-  status: 'todo' | 'progress' | 'done';
+  status: "todo" | "progress" | "done";
   createdAt: number;
   updatedAt: number | null;
 };

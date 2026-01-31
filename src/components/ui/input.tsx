@@ -4,12 +4,28 @@ import { cn } from "@/lib/utils";
 
 type InputProps = React.ComponentProps<"input"> & {
   containerClassName?: string;
+  floatingLabel?: boolean;
 };
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, containerClassName, type, placeholder, id, "aria-label": ariaLabelProp, ...props }, ref) => {
+  (
+    {
+      className,
+      containerClassName,
+      type,
+      placeholder,
+      id,
+      floatingLabel = true,
+      "aria-label": ariaLabelProp,
+      ...props
+    },
+    ref,
+  ) => {
     const generatedId = React.useId();
-    const labelText = typeof placeholder === "string" ? placeholder : undefined;
+    const labelText =
+      floatingLabel && typeof placeholder === "string"
+        ? placeholder
+        : undefined;
     const inputId = id ?? generatedId;
     const ariaLabel = ariaLabelProp ?? labelText;
 
@@ -21,7 +37,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           aria-label={ariaLabel}
           placeholder={labelText ? " " : placeholder}
           className={cn(
-            "peer w-full rounded-none border-0 border-b border-input bg-input px-3 pb-1 pt-5 text-base text-foreground transition-all duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+            "peer w-full rounded-none border-0 border-b border-input bg-input px-3 text-base text-foreground transition-all duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+            labelText
+              ? "pb-1 pt-5 placeholder:text-transparent"
+              : "py-2 placeholder:text-muted-foreground",
             className,
           )}
           ref={ref}

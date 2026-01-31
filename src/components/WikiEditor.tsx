@@ -1,8 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, FileText, ChevronRight, Edit2, Save, X, Trash2, Clock } from 'lucide-react';
-import { useWorkspaceStore } from '@/store/workspaceStore';
-import { cn } from '@/lib/utils';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Plus,
+  FileText,
+  ChevronRight,
+  Edit2,
+  Save,
+  X,
+  Trash2,
+  Clock,
+} from "lucide-react";
+import { useWorkspaceStore } from "@/store/workspaceStore";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,31 +22,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { AppInput } from '@/components/ui/app-input';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { renderMarkdown } from '@/components/markdown/renderMarkdown';
+} from "@/components/ui/dialog";
+import { AppInput } from "@/components/ui/app-input";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { renderMarkdown } from "@/components/markdown/renderMarkdown";
 
 export function WikiEditor() {
-  const { selectedProjectId, wikiPages, addWikiPage, updateWikiPage, deleteWikiPage } = useWorkspaceStore();
+  const {
+    selectedProjectId,
+    wikiPages,
+    addWikiPage,
+    updateWikiPage,
+    deleteWikiPage,
+  } = useWorkspaceStore();
   const projectPages = useMemo(
     () => wikiPages.filter((page) => page.projectId === selectedProjectId),
-    [wikiPages, selectedProjectId]
+    [wikiPages, selectedProjectId],
   );
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(projectPages[0]?.id || null);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(
+    projectPages[0]?.id || null,
+  );
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState('');
-  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState("");
+  const [editTitle, setEditTitle] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newPageTitle, setNewPageTitle] = useState('');
+  const [newPageTitle, setNewPageTitle] = useState("");
   const [isPageSubmitting, setIsPageSubmitting] = useState(false);
   const [isPageSaving, setIsPageSaving] = useState(false);
   const pageSubmitLock = useRef(false);
@@ -51,7 +68,10 @@ export function WikiEditor() {
       return;
     }
 
-    if (!selectedPageId || !projectPages.some((page) => page.id === selectedPageId)) {
+    if (
+      !selectedPageId ||
+      !projectPages.some((page) => page.id === selectedPageId)
+    ) {
       setSelectedPageId(projectPages[0].id);
     }
   }, [projectPages, selectedPageId]);
@@ -76,7 +96,7 @@ export function WikiEditor() {
     setIsEditing(false);
     try {
       await updateWikiPage(selectedPageId, {
-        title: editTitle.trim() || 'Untitled',
+        title: editTitle.trim() || "Untitled",
         content: editContent,
       });
     } finally {
@@ -87,8 +107,8 @@ export function WikiEditor() {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditContent('');
-    setEditTitle('');
+    setEditContent("");
+    setEditTitle("");
   };
 
   const handleAddPage = async () => {
@@ -106,7 +126,7 @@ export function WikiEditor() {
         id: Date.now().toString(),
         projectId: selectedProjectId,
         title: newPageTitle,
-        content: `# ${newPageTitle}\n\nStart writing your documentation here...`,
+        content: "",
         parentId: null,
         children: [],
         createdAt: new Date(),
@@ -116,7 +136,10 @@ export function WikiEditor() {
         const created = await addWikiPage(newPage);
         if (created) {
           setSelectedPageId(created.id);
-          setNewPageTitle('');
+          setEditTitle(created.title);
+          setEditContent(created.content);
+          setIsEditing(true);
+          setNewPageTitle("");
           setIsAddOpen(false);
         }
       } finally {
@@ -139,7 +162,11 @@ export function WikiEditor() {
   };
 
   const formatUpdatedAt = (date: Date) => {
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   return (
@@ -151,11 +178,7 @@ export function WikiEditor() {
             <h3 className="font-mono text-lg font-bold text-primary">Wiki</h3>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
-                <Button
-                  size="sm"
-                  className="gap-2"
-                  variant="primary"
-                >
+                <Button size="sm" className="gap-2" variant="primary">
                   <Plus className="h-4 w-4" />
                   New
                 </Button>
@@ -166,7 +189,7 @@ export function WikiEditor() {
                   if (e.defaultPrevented) {
                     return;
                   }
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     if (isPageSubmitting) {
                       return;
                     }
@@ -184,7 +207,7 @@ export function WikiEditor() {
                     value={newPageTitle}
                     onChange={(e) => setNewPageTitle(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         if (isPageSubmitting) {
                           return;
                         }
@@ -217,10 +240,10 @@ export function WikiEditor() {
                       setIsEditing(false);
                     }}
                     className={cn(
-                      'group w-full h-auto justify-start gap-2 px-3 py-2 rounded-lg text-left transition-all duration-200',
+                      "group w-full h-auto justify-start gap-2 px-3 py-2 rounded-lg text-left transition-all duration-200",
                       selectedPageId === page.id
-                        ? 'border-primary bg-accent/20'
-                        : 'border-border bg-background hover:bg-accent/30'
+                        ? "border-primary bg-accent/20"
+                        : "border-border bg-background hover:bg-accent/30",
                     )}
                     variant="outline"
                     size="sm"
@@ -229,8 +252,8 @@ export function WikiEditor() {
                     <span className="truncate text-sm">{page.title}</span>
                     <ChevronRight
                       className={cn(
-                        'w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity',
-                        selectedPageId === page.id && 'opacity-100'
+                        "w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity",
+                        selectedPageId === page.id && "opacity-100",
                       )}
                     />
                   </Button>
@@ -251,7 +274,9 @@ export function WikiEditor() {
           <>
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
-                <h2 className="font-mono text-lg font-bold text-primary">{selectedPage.title}</h2>
+                <h2 className="font-mono text-lg font-bold text-primary">
+                  {selectedPage.title}
+                </h2>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="w-3 h-3" />
                   <span>Updated {formatUpdatedAt(selectedPage.updatedAt)}</span>
@@ -280,20 +305,13 @@ export function WikiEditor() {
                   </>
                 ) : (
                   <>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleEdit}
-                    >
+                    <Button variant="secondary" size="sm" onClick={handleEdit}>
                       <Edit2 className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                        >
+                        <Button variant="destructive" size="sm">
                           <Trash2 className="w-4 h-4 mr-1" />
                           Delete
                         </Button>
@@ -302,14 +320,17 @@ export function WikiEditor() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete this page?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. The wiki page will be permanently removed.
+                            This action cannot be undone. The wiki page will be
+                            permanently removed.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => handleDelete(selectedPage.id)}
-                            className={buttonVariants({ variant: 'destructive' })}
+                            className={buttonVariants({
+                              variant: "destructive",
+                            })}
                           >
                             Delete
                           </AlertDialogAction>
@@ -349,14 +370,14 @@ export function WikiEditor() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
                 <FileText className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="font-mono text-lg font-bold text-primary mb-2">Your Wiki</h3>
+              <h3 className="font-mono text-lg font-bold text-primary mb-2">
+                Your Wiki
+              </h3>
               <p className="text-sm mb-4">
-                Capture architecture, onboarding notes, and decisions in one place.
+                Capture architecture, onboarding notes, and decisions in one
+                place.
               </p>
-              <Button
-                onClick={() => setIsAddOpen(true)}
-                variant="primary"
-              >
+              <Button onClick={() => setIsAddOpen(true)} variant="primary">
                 <Plus className="w-4 h-4 mr-1" />
                 Create Page
               </Button>

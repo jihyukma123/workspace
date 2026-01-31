@@ -18,7 +18,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AppInput } from "@/components/ui/app-input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -46,7 +45,6 @@ const Index = () => {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: "",
-    description: "",
     priority: "medium" as Task["priority"],
   });
   const [isTaskSubmitting, setIsTaskSubmitting] = useState(false);
@@ -54,7 +52,6 @@ const Index = () => {
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [newIssue, setNewIssue] = useState({
     title: "",
-    description: "",
     priority: "medium" as Issue["priority"],
     status: "todo" as Issue["status"],
   });
@@ -104,13 +101,12 @@ const Index = () => {
         id: Date.now().toString(),
         projectId: selectedProjectId,
         title: newTask.title,
-        description: newTask.description,
         status: "backlog",
         priority: newTask.priority,
         createdAt: new Date(),
       });
       if (created) {
-        setNewTask({ title: "", description: "", priority: "medium" });
+        setNewTask({ title: "", priority: "medium" });
         setIsTaskDialogOpen(false);
       }
     } finally {
@@ -141,7 +137,6 @@ const Index = () => {
         id: nextNumber.toString(),
         projectId: selectedProjectId,
         title: newIssue.title,
-        description: newIssue.description,
         status: newIssue.status,
         priority: newIssue.priority,
         createdAt: new Date(),
@@ -150,7 +145,6 @@ const Index = () => {
       if (created) {
         setNewIssue({
           title: "",
-          description: "",
           priority: "medium",
           status: "todo",
         });
@@ -234,9 +228,6 @@ const Index = () => {
               <h1 className="text-xl font-semibold text-foreground">
                 {selectedProject?.name || "Workspace"}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {selectedProject?.description || "Select a project"}
-              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -289,17 +280,6 @@ const Index = () => {
                               handleAddTask();
                             }
                           }}
-                        />
-                        <Textarea
-                          placeholder="Description (optional)"
-                          value={newTask.description}
-                          onChange={(e) =>
-                            setNewTask({
-                              ...newTask,
-                              description: e.target.value,
-                            })
-                          }
-                          className={cn("bg-input border-border")}
                         />
                         <Select
                           value={newTask.priority}
@@ -373,17 +353,6 @@ const Index = () => {
                           onChange={(e) =>
                             setNewIssue({ ...newIssue, title: e.target.value })
                           }
-                        />
-                        <Textarea
-                          placeholder="Description (optional)"
-                          value={newIssue.description}
-                          onChange={(e) =>
-                            setNewIssue({
-                              ...newIssue,
-                              description: e.target.value,
-                            })
-                          }
-                          className={cn("bg-input border-border")}
                         />
                         <Select
                           value={newIssue.status}

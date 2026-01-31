@@ -5,7 +5,6 @@ export type Result<T> =
 export type ProjectRecord = {
   id: string;
   name: string;
-  description: string;
   createdAt: number;
 };
 
@@ -13,7 +12,6 @@ export type TaskRecord = {
   id: string;
   projectId: string;
   title: string;
-  description: string;
   status: "backlog" | "in-progress" | "done";
   priority: "low" | "medium" | "high";
   createdAt: number;
@@ -26,7 +24,6 @@ export type IssueRecord = {
   id: string;
   projectId: string;
   title: string;
-  description: string;
   status: "todo" | "in-progress" | "done";
   priority: "low" | "medium" | "high";
   createdAt: number;

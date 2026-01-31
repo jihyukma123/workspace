@@ -8,12 +8,12 @@ import {
   Pencil,
   CalendarDays,
 } from "lucide-react";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Task, KanbanColumn } from "@/types/workspace";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
@@ -67,7 +67,6 @@ export function KanbanBoard() {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [editForm, setEditForm] = useState({
     title: "",
-    description: "",
     priority: "medium" as Task["priority"],
     dueDate: "" as string,
   });
@@ -129,7 +128,6 @@ export function KanbanBoard() {
   const openEditDialog = (task: Task) => {
     setEditForm({
       title: task.title,
-      description: task.description,
       priority: task.priority,
       dueDate: task.dueDate ? task.dueDate.toISOString().split("T")[0] : "",
     });
@@ -140,7 +138,6 @@ export function KanbanBoard() {
     if (!taskToEdit || !editForm.title.trim()) return;
     await updateTask(taskToEdit.id, {
       title: editForm.title.trim(),
-      description: editForm.description.trim(),
       priority: editForm.priority,
       dueDate: editForm.dueDate ? new Date(editForm.dueDate) : null,
     });
@@ -206,11 +203,6 @@ export function KanbanBoard() {
                           <p className="font-medium text-sm text-foreground truncate">
                             {task.title}
                           </p>
-                          {task.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {task.description}
-                            </p>
-                          )}
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span
                               className={cn(
@@ -231,10 +223,7 @@ export function KanbanBoard() {
                                 )}
                               >
                                 <CalendarDays className="w-3 h-3" />
-                                {task.dueDate.toLocaleDateString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                })}
+                                <RelativeTime date={task.dueDate} shortFormat />
                               </span>
                             )}
                           </div>
@@ -349,18 +338,6 @@ export function KanbanBoard() {
                   setEditForm({ ...editForm, title: e.target.value })
                 }
                 placeholder="Task title"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={editForm.description}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, description: e.target.value })
-                }
-                placeholder="Task description (optional)"
-                rows={3}
               />
             </div>
             <div className="grid gap-2">

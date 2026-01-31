@@ -45,9 +45,7 @@ interface WorkspaceState extends MemoState {
   addTask: (task: Task) => Promise<Task | null>;
   updateTask: (
     taskId: string,
-    updates: Partial<
-      Pick<Task, "title" | "description" | "priority" | "dueDate">
-    >,
+    updates: Partial<Pick<Task, "title" | "priority" | "dueDate">>,
   ) => Promise<void>;
   updateTaskStatus: (taskId: string, status: Task["status"]) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -111,7 +109,6 @@ interface WorkspaceState extends MemoState {
 const mapProject = (record: ProjectRecord): Project => ({
   id: record.id,
   name: record.name,
-  description: record.description,
   createdAt: new Date(record.createdAt),
 });
 
@@ -119,7 +116,6 @@ const mapTask = (record: TaskRecord): Task => ({
   id: record.id,
   projectId: record.projectId,
   title: record.title,
-  description: record.description,
   status: record.status,
   priority: record.priority,
   createdAt: new Date(record.createdAt),
@@ -132,7 +128,6 @@ const mapIssue = (record: IssueRecord): Issue => ({
   id: record.id,
   projectId: record.projectId,
   title: record.title,
-  description: record.description,
   status: record.status,
   priority: record.priority,
   createdAt: new Date(record.createdAt),
@@ -341,7 +336,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const payload: ProjectRecord = {
       id: project.id,
       name: project.name,
-      description: project.description,
       createdAt: project.createdAt.getTime(),
     };
     const result = await api.projects.create(payload);
@@ -358,7 +352,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       projectId: created.id,
       title: "Test task",
-      description: "",
       status: "backlog",
       priority: "medium",
       createdAt: Date.now(),
@@ -420,7 +413,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id: task.id,
       projectId: task.projectId,
       title: task.title,
-      description: task.description,
       status: task.status,
       priority: task.priority,
       createdAt: task.createdAt.getTime(),
@@ -502,7 +494,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id: issue.id,
       projectId: issue.projectId,
       title: issue.title,
-      description: issue.description,
       status: issue.status,
       priority: issue.priority,
       createdAt: issue.createdAt.getTime(),
@@ -529,7 +520,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id: issueId,
       updates: {
         title: updates.title,
-        description: updates.description,
         status: updates.status,
         priority: updates.priority,
         dueDate:

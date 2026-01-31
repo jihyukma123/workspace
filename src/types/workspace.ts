@@ -1,7 +1,6 @@
 export interface Project {
   id: string;
   name: string;
-  description: string;
   createdAt: Date;
 }
 
@@ -9,7 +8,6 @@ export interface Task {
   id: string;
   projectId: string;
   title: string;
-  description: string;
   status: "backlog" | "in-progress" | "done";
   priority: "low" | "medium" | "high";
   createdAt: Date;
@@ -22,7 +20,6 @@ export interface Issue {
   id: string;
   projectId: string;
   title: string;
-  description: string;
   status: "todo" | "in-progress" | "done";
   priority: "low" | "medium" | "high";
   createdAt: Date;

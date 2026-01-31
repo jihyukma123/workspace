@@ -14,7 +14,6 @@ export const schemas = {
   projectCreate: z.object({
     id: idSchema,
     name: z.string().min(1),
-    description: z.string().optional().nullable(),
     createdAt: timestampSchema,
   }),
   projectList: z.undefined().optional(),
@@ -23,7 +22,6 @@ export const schemas = {
     updates: z
       .object({
         name: z.string().min(1).optional(),
-        description: z.string().optional().nullable(),
       })
       .refine((value) => Object.keys(value).length > 0, {
         message: "No updates provided",
@@ -36,7 +34,6 @@ export const schemas = {
     id: idSchema,
     projectId: idSchema,
     title: z.string().min(1),
-    description: z.string().optional().nullable(),
     status: z.enum(["backlog", "in-progress", "done"]),
     priority: z.enum(["low", "medium", "high"]),
     createdAt: timestampSchema,
@@ -48,7 +45,6 @@ export const schemas = {
     updates: z
       .object({
         title: z.string().min(1).optional(),
-        description: z.string().optional().nullable(),
         status: z.enum(["backlog", "in-progress", "done"]).optional(),
         priority: z.enum(["low", "medium", "high"]).optional(),
         position: z.number().int().optional().nullable(),
@@ -64,7 +60,6 @@ export const schemas = {
     id: idSchema,
     projectId: idSchema,
     title: z.string().min(1),
-    description: z.string().optional().nullable(),
     status: z.enum(["todo", "in-progress", "done"]),
     priority: z.enum(["low", "medium", "high"]),
     createdAt: timestampSchema,
@@ -76,7 +71,6 @@ export const schemas = {
     updates: z
       .object({
         title: z.string().min(1).optional(),
-        description: z.string().optional().nullable(),
         status: z.enum(["todo", "in-progress", "done"]).optional(),
         priority: z.enum(["low", "medium", "high"]).optional(),
         dueDate: timestampSchema.nullable().optional(),

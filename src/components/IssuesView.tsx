@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Issue } from "@/types/workspace";
+import { RelativeTime } from "@/components/ui/relative-time";
 
 const statusLabels: Record<Issue["status"], string> = {
   todo: "Todo",
@@ -53,9 +54,6 @@ const priorityStyles: Record<Issue["priority"], string> = {
     "bg-status-progress/20 text-status-progress border-status-progress/30",
   high: "bg-destructive/20 text-destructive border-destructive/30",
 };
-
-const formatDate = (date: Date) =>
-  date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 interface IssuesViewProps {
   onAddIssue?: () => void;
@@ -79,9 +77,7 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedIssueId = searchParams.get("issue");
-  const [draftDescription, setDraftDescription] = useState("");
   const [draftComment, setDraftComment] = useState("");
-  const [isSavingIssue, setIsSavingIssue] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const projectIssues = useMemo(
@@ -142,13 +138,6 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
     void listIssueComments(selectedIssueId);
   }, [listIssueComments, selectedIssueId]);
 
-  useEffect(() => {
-    if (!selectedIssue) {
-      return;
-    }
-    setDraftDescription(selectedIssue.description ?? "");
-  }, [selectedIssue]);
-
   const isDetailView = Boolean(selectedIssueId);
 
   if (isDetailView) {
@@ -181,7 +170,7 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
               {selectedIssue ? (
                 <p className="mt-1 text-sm text-muted-foreground">
                   ISSUE-{selectedIssue.id} • Created{" "}
-                  {formatDate(selectedIssue.createdAt)}
+                  <RelativeTime date={selectedIssue.createdAt} />
                 </p>
               ) : (
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -242,7 +231,10 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                             )}
                           >
                             <Calendar className="w-3 h-3" />
-                            {formatDate(selectedIssue.dueDate)}
+                            <RelativeTime
+                              date={selectedIssue.dueDate}
+                              shortFormat
+                            />
                           </Badge>
                         )}
                       </div>
@@ -374,36 +366,6 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                       />
                     </div>
                   </div>
-
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-mono text-muted-foreground">
-                        Main content
-                      </div>
-                      <Button
-                        size="sm"
-                        disabled={isSavingIssue}
-                        onClick={async () => {
-                          setIsSavingIssue(true);
-                          try {
-                            await updateIssue(selectedIssue.id, {
-                              description: draftDescription,
-                            });
-                          } finally {
-                            setIsSavingIssue(false);
-                          }
-                        }}
-                      >
-                        Save
-                      </Button>
-                    </div>
-                    <Textarea
-                      value={draftDescription}
-                      onChange={(e) => setDraftDescription(e.target.value)}
-                      placeholder="Write the main issue notes here…"
-                      className="min-h-[180px] bg-input border-border"
-                    />
-                  </div>
                 </CardContent>
               </Card>
 
@@ -428,7 +390,7 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                         >
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <div className="text-xs text-muted-foreground">
-                              {comment.createdAt.toLocaleString()}
+                              <RelativeTime date={comment.createdAt} />
                             </div>
                             <Button
                               variant="destructive"
@@ -687,7 +649,7 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                             )}
                           >
                             <Calendar className="w-3 h-3" />
-                            {formatDate(issue.dueDate)}
+                            <RelativeTime date={issue.dueDate} shortFormat />
                           </Badge>
                         )}
                       </div>
@@ -753,7 +715,7 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                   <div className="flex items-center justify-between">
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="w-3.5 h-3.5" />
-                      {formatDate(issue.createdAt)}
+                      <RelativeTime date={issue.createdAt} />
                     </span>
                   </div>
                 </CardContent>

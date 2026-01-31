@@ -151,4 +151,62 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at);
     `,
   },
+  {
+    id: 8,
+    name: "remove_description_columns",
+    up: `
+      -- SQLite doesn't support DROP COLUMN directly, so we need to recreate the tables
+      -- Projects table: remove description
+      CREATE TABLE projects_new (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      INSERT INTO projects_new (id, name, created_at)
+        SELECT id, name, created_at FROM projects;
+      DROP TABLE projects;
+      ALTER TABLE projects_new RENAME TO projects;
+
+      -- Tasks table: remove description
+      CREATE TABLE tasks_new (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER,
+        position INTEGER,
+        due_date INTEGER,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      );
+      INSERT INTO tasks_new (id, project_id, title, status, priority, created_at, updated_at, position, due_date)
+        SELECT id, project_id, title, status, priority, created_at, updated_at, position, due_date FROM tasks;
+      DROP TABLE tasks;
+      ALTER TABLE tasks_new RENAME TO tasks;
+
+      CREATE INDEX IF NOT EXISTS idx_tasks_project_status ON tasks(project_id, status);
+      CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+
+      -- Issues table: remove description
+      CREATE TABLE issues_new (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        due_date INTEGER,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      );
+      INSERT INTO issues_new (id, project_id, title, status, priority, created_at, updated_at, due_date)
+        SELECT id, project_id, title, status, priority, created_at, updated_at, due_date FROM issues;
+      DROP TABLE issues;
+      ALTER TABLE issues_new RENAME TO issues;
+
+      CREATE INDEX IF NOT EXISTS idx_issues_project_status ON issues(project_id, status);
+      CREATE INDEX IF NOT EXISTS idx_issues_due_date ON issues(due_date);
+    `,
+  },
 ];

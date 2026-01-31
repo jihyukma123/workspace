@@ -4,7 +4,6 @@ import { parseInput, schemas } from "./validation.js";
 const mapProject = (row) => ({
   id: row.id,
   name: row.name,
-  description: row.description ?? "",
   createdAt: row.created_at,
 });
 
@@ -12,7 +11,6 @@ const mapTask = (row) => ({
   id: row.id,
   projectId: row.project_id,
   title: row.title,
-  description: row.description ?? "",
   status: row.status,
   priority: row.priority,
   createdAt: row.created_at,
@@ -25,7 +23,6 @@ const mapIssue = (row) => ({
   id: row.id,
   projectId: row.project_id,
   title: row.title,
-  description: row.description ?? "",
   status: row.status,
   priority: row.priority,
   createdAt: row.created_at,
@@ -113,13 +110,8 @@ export const registerIpcHandlers = (ipcMain, db) => {
     try {
       const payload = parsed.data;
       db.prepare(
-        "INSERT INTO projects (id, name, description, created_at) VALUES (?, ?, ?, ?)",
-      ).run(
-        payload.id,
-        payload.name,
-        payload.description ?? null,
-        payload.createdAt,
-      );
+        "INSERT INTO projects (id, name, created_at) VALUES (?, ?, ?)",
+      ).run(payload.id, payload.name, payload.createdAt);
       const row = db
         .prepare("SELECT * FROM projects WHERE id = ?")
         .get(payload.id);
@@ -141,10 +133,6 @@ export const registerIpcHandlers = (ipcMain, db) => {
       if (updates.name !== undefined) {
         fields.push("name = ?");
         values.push(updates.name);
-      }
-      if (updates.description !== undefined) {
-        fields.push("description = ?");
-        values.push(updates.description);
       }
       values.push(id);
       const statement = `UPDATE projects SET ${fields.join(", ")} WHERE id = ?`;
@@ -205,13 +193,12 @@ export const registerIpcHandlers = (ipcMain, db) => {
       const payload = parsed.data;
       db.prepare(
         `INSERT INTO tasks
-          (id, project_id, title, description, status, priority, created_at, position, due_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, project_id, title, status, priority, created_at, position, due_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
         payload.title,
-        payload.description ?? null,
         payload.status,
         payload.priority,
         payload.createdAt,
@@ -239,10 +226,6 @@ export const registerIpcHandlers = (ipcMain, db) => {
       if (updates.title !== undefined) {
         fields.push("title = ?");
         values.push(updates.title);
-      }
-      if (updates.description !== undefined) {
-        fields.push("description = ?");
-        values.push(updates.description);
       }
       if (updates.status !== undefined) {
         fields.push("status = ?");
@@ -320,13 +303,12 @@ export const registerIpcHandlers = (ipcMain, db) => {
       const payload = parsed.data;
       db.prepare(
         `INSERT INTO issues
-          (id, project_id, title, description, status, priority, created_at, updated_at, due_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, project_id, title, status, priority, created_at, updated_at, due_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
         payload.title,
-        payload.description ?? null,
         payload.status,
         payload.priority,
         payload.createdAt,
@@ -354,10 +336,6 @@ export const registerIpcHandlers = (ipcMain, db) => {
       if (updates.title !== undefined) {
         fields.push("title = ?");
         values.push(updates.title);
-      }
-      if (updates.description !== undefined) {
-        fields.push("description = ?");
-        values.push(updates.description);
       }
       if (updates.status !== undefined) {
         fields.push("status = ?");

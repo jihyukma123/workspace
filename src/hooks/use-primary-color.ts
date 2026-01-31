@@ -22,7 +22,7 @@ export function usePrimaryColor() {
   }, [primaryColorId]);
 
   const resetPrimaryColor = useCallback(() => {
-    setPrimaryColorId(null);
+    setPrimaryColorId("default");
   }, []);
 
   const setPrimaryColor = useCallback((next: PrimaryColorId) => {
@@ -35,4 +35,3 @@ export function usePrimaryColor() {
     resetPrimaryColor,
   };
 }
-

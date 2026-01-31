@@ -2,6 +2,11 @@ export const PRIMARY_COLOR_STORAGE_KEY = "workspace.primaryColor" as const;
 
 export const PRIMARY_COLOR_OPTIONS = [
   {
+    id: "default",
+    label: "Default (Teal)",
+    cssVar: "--primary",
+  },
+  {
     id: "pantone-2025",
     label: "2025 · Mocha Mousse",
     cssVar: "--pantone-2025",
@@ -100,4 +105,3 @@ export function applyPrimaryColorToDocument(
   }
   root.dataset.primary = primaryColorId;
 }
-

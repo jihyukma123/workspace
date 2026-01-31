@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, Notification } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { openDatabase } from "./electron/db.js";
@@ -11,6 +11,58 @@ const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const VITE_DEV_SERVER_URL = "http://localhost:8080";
 let db = null;
+let reminderCheckInterval = null;
+
+function checkDueReminders() {
+  if (!db) return;
+
+  try {
+    const now = Date.now();
+    const dueReminders = db
+      .prepare(
+        `SELECT r.*, p.name as project_name 
+         FROM reminders r 
+         LEFT JOIN projects p ON r.project_id = p.id
+         WHERE r.remind_at IS NOT NULL 
+           AND r.remind_at <= ? 
+           AND r.notified = 0 
+           AND r.status != 'done'`,
+      )
+      .all(now);
+
+    for (const reminder of dueReminders) {
+      if (Notification.isSupported()) {
+        const notification = new Notification({
+          title: `⏰ Reminder${reminder.project_name ? ` - ${reminder.project_name}` : ""}`,
+          body: reminder.text,
+          silent: false,
+        });
+        notification.show();
+      }
+
+      // Mark as notified
+      db.prepare("UPDATE reminders SET notified = 1 WHERE id = ?").run(
+        reminder.id,
+      );
+    }
+  } catch (error) {
+    console.error("Error checking due reminders:", error);
+  }
+}
+
+function startReminderChecker() {
+  // Check every 30 seconds
+  reminderCheckInterval = setInterval(checkDueReminders, 30000);
+  // Also check immediately on start
+  checkDueReminders();
+}
+
+function stopReminderChecker() {
+  if (reminderCheckInterval) {
+    clearInterval(reminderCheckInterval);
+    reminderCheckInterval = null;
+  }
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -38,6 +90,7 @@ app.whenReady().then(() => {
   db = openDatabase();
   registerIpcHandlers(ipcMain, db);
   createWindow();
+  startReminderChecker();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -53,6 +106,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  stopReminderChecker();
   if (db) {
     db.close();
     db = null;

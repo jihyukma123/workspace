@@ -1,21 +1,120 @@
-import { useMemo, useRef, useState } from 'react';
-import { Check, Plus, Trash2, X } from 'lucide-react';
-import { useWorkspaceStore } from '@/store/workspaceStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ToastAction } from '@/components/ui/toast';
-import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { Reminder } from '@/types/workspace';
+import { useMemo, useRef, useState } from "react";
+import { Bell, Check, Clock, Plus, Trash2, X } from "lucide-react";
+import { useWorkspaceStore } from "@/store/workspaceStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ToastAction } from "@/components/ui/toast";
+import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { Reminder } from "@/types/workspace";
 
 const getReminderId = () => {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
   return `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 };
+
+function formatDateTimeLocal(date: Date | null): string {
+  if (!date) return "";
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
+interface ReminderTimeEditorProps {
+  reminder: Reminder;
+  onUpdate: (
+    id: string,
+    updates: Partial<Pick<Reminder, "text" | "status" | "remindAt">>,
+  ) => Promise<boolean>;
+  disabled?: boolean;
+}
+
+function ReminderTimeEditor({
+  reminder,
+  onUpdate,
+  disabled,
+}: ReminderTimeEditorProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [localTime, setLocalTime] = useState(
+    formatDateTimeLocal(reminder.remindAt),
+  );
+
+  const handleSave = async () => {
+    const newRemindAt = localTime ? new Date(localTime) : null;
+    await onUpdate(reminder.id, { remindAt: newRemindAt });
+    setIsOpen(false);
+  };
+
+  const handleClear = async () => {
+    setLocalTime("");
+    await onUpdate(reminder.id, { remindAt: null });
+    setIsOpen(false);
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn(
+            "h-6 w-6 shrink-0 transition-opacity",
+            !reminder.remindAt && "opacity-0 group-hover:opacity-100",
+            reminder.remindAt && "text-primary",
+            "text-muted-foreground hover:text-primary",
+          )}
+          disabled={disabled}
+          title="Set reminder time"
+        >
+          <Clock className={cn("h-3.5 w-3.5")} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className={cn("w-auto p-3")} align="end">
+        <div className={cn("space-y-2")}>
+          <label className={cn("text-xs font-medium text-foreground")}>
+            Remind me at
+          </label>
+          <Input
+            type="datetime-local"
+            value={localTime}
+            onChange={(e) => setLocalTime(e.target.value)}
+            className={cn("w-full")}
+          />
+          <div className={cn("flex gap-2")}>
+            <Button
+              size="sm"
+              className={cn("flex-1 text-xs")}
+              onClick={handleSave}
+            >
+              Save
+            </Button>
+            {reminder.remindAt && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "text-xs text-destructive hover:text-destructive",
+                )}
+                onClick={handleClear}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function ReminderPanelContent() {
   const {
@@ -25,7 +124,8 @@ export function ReminderPanelContent() {
     updateReminder,
     deleteReminder,
   } = useWorkspaceStore();
-  const [newText, setNewText] = useState('');
+  const [newText, setNewText] = useState("");
+  const [newRemindAt, setNewRemindAt] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isReminderSubmitting, setIsReminderSubmitting] = useState(false);
   const reminderSubmitLock = useRef(false);
@@ -36,17 +136,19 @@ export function ReminderPanelContent() {
       .slice()
       .sort((a, b) => {
         // 미완료 항목을 위로, 완료 항목을 아래로
-        if (a.status === 'done' && b.status !== 'done') return 1;
-        if (a.status !== 'done' && b.status === 'done') return -1;
+        if (a.status === "done" && b.status !== "done") return 1;
+        if (a.status !== "done" && b.status === "done") return -1;
         return a.createdAt.getTime() - b.createdAt.getTime();
       });
   }, [reminders, selectedProjectId]);
 
-  const completedCount = projectReminders.filter((r) => r.status === 'done').length;
+  const completedCount = projectReminders.filter(
+    (r) => r.status === "done",
+  ).length;
 
   const handleCreateReminder = async () => {
     if (!selectedProjectId) {
-      setErrorMessage('Select a project to add reminders.');
+      setErrorMessage("Select a project to add reminders.");
       return;
     }
     const trimmed = newText.trim();
@@ -65,15 +167,17 @@ export function ReminderPanelContent() {
         id: getReminderId(),
         projectId: selectedProjectId,
         text: trimmed,
-        status: 'todo',
+        status: "todo",
         createdAt: now,
         updatedAt: null,
+        remindAt: newRemindAt ? new Date(newRemindAt) : null,
       });
       if (!created) {
-        setErrorMessage('Could not save the reminder. Try again.');
+        setErrorMessage("Could not save the reminder. Try again.");
         return;
       }
-      setNewText('');
+      setNewText("");
+      setNewRemindAt("");
     } finally {
       setIsReminderSubmitting(false);
       reminderSubmitLock.current = false;
@@ -85,7 +189,7 @@ export function ReminderPanelContent() {
     if (e.nativeEvent.isComposing) {
       return;
     }
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       if (isReminderSubmitting) {
         return;
       }
@@ -95,10 +199,13 @@ export function ReminderPanelContent() {
   };
 
   const handleToggleComplete = async (reminder: Reminder) => {
-    const newStatus = reminder.status === 'done' ? 'todo' : 'done';
-    const ok = await updateReminder(reminder.id, { text: reminder.text, status: newStatus });
+    const newStatus = reminder.status === "done" ? "todo" : "done";
+    const ok = await updateReminder(reminder.id, {
+      text: reminder.text,
+      status: newStatus,
+    });
     if (!ok) {
-      setErrorMessage('Could not update the reminder.');
+      setErrorMessage("Could not update the reminder.");
     }
   };
 
@@ -106,12 +213,12 @@ export function ReminderPanelContent() {
     setErrorMessage(null);
     const ok = await deleteReminder(reminder.id);
     if (!ok) {
-      setErrorMessage('Could not delete the reminder.');
+      setErrorMessage("Could not delete the reminder.");
       return;
     }
 
     toast({
-      title: 'Reminder deleted',
+      title: "Reminder deleted",
       description: reminder.text,
       action: (
         <ToastAction
@@ -124,8 +231,8 @@ export function ReminderPanelContent() {
               });
               if (!restored) {
                 toast({
-                  title: 'Undo failed',
-                  description: 'Could not restore the reminder. Try again.',
+                  title: "Undo failed",
+                  description: "Could not restore the reminder. Try again.",
                 });
               }
             })();
@@ -138,43 +245,89 @@ export function ReminderPanelContent() {
   };
 
   return (
-    <div className={cn('flex h-full flex-col')}>
-      <div className={cn('border-b border-border px-4 py-4 pr-12')}>
-        <div className={cn('flex items-center justify-between')}>
-          <h2 className={cn('font-mono text-lg font-bold text-primary')}>Reminders</h2>
-          <div className={cn('flex items-center gap-2 text-xs text-muted-foreground')}>
-            <Check className={cn('h-4 w-4 text-primary')} />
-            <span>{completedCount}/{projectReminders.length}</span>
+    <div className={cn("flex h-full flex-col")}>
+      <div className={cn("border-b border-border px-4 py-4 pr-12")}>
+        <div className={cn("flex items-center justify-between")}>
+          <h2 className={cn("font-mono text-lg font-bold text-primary")}>
+            Reminders
+          </h2>
+          <div
+            className={cn(
+              "flex items-center gap-2 text-xs text-muted-foreground",
+            )}
+          >
+            <Check className={cn("h-4 w-4 text-primary")} />
+            <span>
+              {completedCount}/{projectReminders.length}
+            </span>
           </div>
         </div>
-        <p className={cn('mt-1 text-xs text-muted-foreground')}>
+        <p className={cn("mt-1 text-xs text-muted-foreground")}>
           Quick checklist to keep things top of mind.
         </p>
       </div>
 
-      <div className={cn('border-b border-border px-4 py-3')}>
-        <div className={cn('flex items-center gap-2')}>
+      <div className={cn("border-b border-border px-4 py-3")}>
+        <div className={cn("flex items-center gap-2")}>
           <Input
             placeholder="Add a reminder..."
             value={newText}
             onChange={(event) => setNewText(event.target.value)}
             onKeyDown={handleKeyDown}
-            containerClassName={cn('flex-1')}
-            className={cn('bg-input border-border')}
+            containerClassName={cn("flex-1")}
+            className={cn("bg-input border-border")}
           />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                size="icon"
+                variant="outline"
+                className={cn(
+                  "h-9 w-9 shrink-0",
+                  newRemindAt && "border-primary text-primary",
+                )}
+                title="Set reminder time"
+              >
+                <Clock className={cn("h-4 w-4")} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className={cn("w-auto p-3")} align="end">
+              <div className={cn("space-y-2")}>
+                <label className={cn("text-xs font-medium text-foreground")}>
+                  Remind me at
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={newRemindAt}
+                  onChange={(e) => setNewRemindAt(e.target.value)}
+                  className={cn("w-full")}
+                />
+                {newRemindAt && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={cn("w-full text-xs")}
+                    onClick={() => setNewRemindAt("")}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button
             size="icon"
-            className={cn('h-9 w-9 shrink-0')}
+            className={cn("h-9 w-9 shrink-0")}
             onClick={handleCreateReminder}
             disabled={!newText.trim() || isReminderSubmitting}
           >
-            <Plus className={cn('h-4 w-4')} />
+            <Plus className={cn("h-4 w-4")} />
           </Button>
         </div>
       </div>
 
       {errorMessage && (
-        <div className={cn('px-4 pt-4')}>
+        <div className={cn("px-4 pt-4")}>
           <Alert>
             <AlertTitle>Reminder error</AlertTitle>
             <AlertDescription>{errorMessage}</AlertDescription>
@@ -182,50 +335,87 @@ export function ReminderPanelContent() {
         </div>
       )}
 
-      <div className={cn('flex-1 overflow-y-auto scrollbar-thin px-4 py-3')}>
+      <div className={cn("flex-1 overflow-y-auto scrollbar-thin px-4 py-3")}>
         {!selectedProjectId ? (
-          <div className={cn('rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground')}>
+          <div
+            className={cn(
+              "rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground",
+            )}
+          >
             Select a project to manage reminders.
           </div>
         ) : projectReminders.length === 0 ? (
-          <div className={cn('rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground')}>
+          <div
+            className={cn(
+              "rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground",
+            )}
+          >
             No reminders yet. Add one above.
           </div>
         ) : (
-          <div className={cn('space-y-1')}>
+          <div className={cn("space-y-1")}>
             {projectReminders.map((reminder) => {
-              const isDone = reminder.status === 'done';
+              const isDone = reminder.status === "done";
+              const hasRemindAt = reminder.remindAt !== null;
+              const isPastDue = hasRemindAt && reminder.remindAt! < new Date();
               return (
                 <div
                   key={reminder.id}
                   className={cn(
-                    'group flex items-start gap-3 rounded-md px-2 py-2 transition-all duration-200',
-                    'hover:bg-accent/50'
+                    "group flex items-start gap-3 rounded-md px-2 py-2 transition-all duration-200",
+                    "hover:bg-accent/50",
                   )}
                 >
                   <Checkbox
                     checked={isDone}
                     onCheckedChange={() => handleToggleComplete(reminder)}
-                    className={cn('mt-0.5 shrink-0')}
+                    className={cn("mt-0.5 shrink-0")}
                   />
-                  <span
-                    className={cn(
-                      'flex-1 text-sm leading-relaxed',
-                      isDone && 'text-muted-foreground line-through'
+                  <div className={cn("flex-1 min-w-0")}>
+                    <span
+                      className={cn(
+                        "block text-sm leading-relaxed",
+                        isDone && "text-muted-foreground line-through",
+                      )}
+                    >
+                      {reminder.text}
+                    </span>
+                    {hasRemindAt && !isDone && (
+                      <div
+                        className={cn(
+                          "mt-1 flex items-center gap-1 text-xs",
+                          isPastDue
+                            ? "text-destructive"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        <Bell className={cn("h-3 w-3")} />
+                        <span>
+                          {reminder.remindAt!.toLocaleString("ko-KR", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
                     )}
-                  >
-                    {reminder.text}
-                  </span>
+                  </div>
+                  <ReminderTimeEditor
+                    reminder={reminder}
+                    onUpdate={updateReminder}
+                    disabled={isDone}
+                  />
                   <Button
                     size="icon"
                     variant="ghost"
                     className={cn(
-                      'h-6 w-6 shrink-0 opacity-0 transition-opacity group-hover:opacity-100',
-                      'text-muted-foreground hover:text-destructive'
+                      "h-6 w-6 shrink-0 opacity-0 transition-opacity group-hover:opacity-100",
+                      "text-muted-foreground hover:text-destructive",
                     )}
                     onClick={() => handleDelete(reminder)}
                   >
-                    <X className={cn('h-3.5 w-3.5')} />
+                    <X className={cn("h-3.5 w-3.5")} />
                   </Button>
                 </div>
               );
@@ -241,7 +431,7 @@ export function ReminderPanel() {
   return (
     <aside
       className={cn(
-        'w-full shrink-0 border-t border-sidebar-border bg-sidebar text-sidebar-foreground lg:w-80 lg:border-l lg:border-t-0'
+        "w-full shrink-0 border-t border-sidebar-border bg-sidebar text-sidebar-foreground lg:w-80 lg:border-l lg:border-t-0",
       )}
     >
       <ReminderPanelContent />

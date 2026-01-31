@@ -15,11 +15,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Save } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -108,10 +104,6 @@ export function DailyLogView() {
 
   const loggedDateKeys = useMemo(
     () => new Set(projectLogs.map((log) => log.date)),
-    [projectLogs],
-  );
-  const logByDateKey = useMemo(
-    () => new Map(projectLogs.map((log) => [log.date, log] as const)),
     [projectLogs],
   );
 
@@ -389,7 +381,6 @@ export function DailyLogView() {
                 const isOutside = !isSameMonth(date, monthAnchor);
                 const isSelected = isSameDay(date, selectedDate);
                 const hasLog = loggedDateKeys.has(key);
-                const preview = logByDateKey.get(key)?.content?.trim() ?? "";
 
                 return (
                   <button
@@ -398,10 +389,10 @@ export function DailyLogView() {
                     onClick={() => handleMonthPick(date)}
                     className={cn(
                       "border-r border-b border-border",
-                      "min-h-[52px] px-2 py-1 text-left",
+                      "min-h-[72px] px-2 py-2 text-left",
                       "transition-all duration-200 hover:bg-muted/40",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      isOutside && "bg-muted/10 text-muted-foreground",
+                      isOutside && "bg-muted/10 opacity-40",
                       isSelected && "bg-primary/15",
                     )}
                   >
@@ -410,6 +401,7 @@ export function DailyLogView() {
                         className={cn(
                           "text-sm font-medium",
                           isSelected && "text-primary",
+                          isOutside && "text-muted-foreground",
                         )}
                       >
                         {format(date, "d")}
@@ -420,9 +412,6 @@ export function DailyLogView() {
                           aria-label="Has log"
                         />
                       )}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground line-clamp-1">
-                      {hasLog ? preview.split("\n")[0] || "(Saved)" : ""}
                     </div>
                   </button>
                 );

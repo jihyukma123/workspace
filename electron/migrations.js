@@ -130,4 +130,25 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_issue_comments_issue_created ON issue_comments(issue_id, created_at);
     `,
   },
+  {
+    id: 6,
+    name: "due_date",
+    up: `
+      ALTER TABLE tasks ADD COLUMN due_date INTEGER;
+      ALTER TABLE issues ADD COLUMN due_date INTEGER;
+
+      CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+      CREATE INDEX IF NOT EXISTS idx_issues_due_date ON issues(due_date);
+    `,
+  },
+  {
+    id: 7,
+    name: "reminder_notifications",
+    up: `
+      ALTER TABLE reminders ADD COLUMN remind_at INTEGER;
+      ALTER TABLE reminders ADD COLUMN notified INTEGER DEFAULT 0;
+
+      CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at);
+    `,
+  },
 ];

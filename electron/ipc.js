@@ -18,6 +18,7 @@ const mapTask = (row) => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at ?? null,
   position: row.position ?? null,
+  dueDate: row.due_date ?? null,
 });
 
 const mapIssue = (row) => ({
@@ -29,6 +30,7 @@ const mapIssue = (row) => ({
   priority: row.priority,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  dueDate: row.due_date ?? null,
 });
 
 const mapIssueComment = (row) => ({
@@ -75,6 +77,8 @@ const mapReminder = (row) => ({
   status: row.status,
   createdAt: row.created_at,
   updatedAt: row.updated_at ?? null,
+  remindAt: row.remind_at ?? null,
+  notified: row.notified ?? 0,
 });
 
 const mapFeedback = (row) => ({
@@ -201,8 +205,8 @@ export const registerIpcHandlers = (ipcMain, db) => {
       const payload = parsed.data;
       db.prepare(
         `INSERT INTO tasks
-          (id, project_id, title, description, status, priority, created_at, position)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, project_id, title, description, status, priority, created_at, position, due_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
@@ -212,6 +216,7 @@ export const registerIpcHandlers = (ipcMain, db) => {
         payload.priority,
         payload.createdAt,
         payload.position ?? null,
+        payload.dueDate ?? null,
       );
       const row = db
         .prepare("SELECT * FROM tasks WHERE id = ?")
@@ -250,6 +255,10 @@ export const registerIpcHandlers = (ipcMain, db) => {
       if (updates.position !== undefined) {
         fields.push("position = ?");
         values.push(updates.position);
+      }
+      if (updates.dueDate !== undefined) {
+        fields.push("due_date = ?");
+        values.push(updates.dueDate);
       }
       fields.push("updated_at = ?");
       values.push(Date.now());
@@ -311,8 +320,8 @@ export const registerIpcHandlers = (ipcMain, db) => {
       const payload = parsed.data;
       db.prepare(
         `INSERT INTO issues
-          (id, project_id, title, description, status, priority, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, project_id, title, description, status, priority, created_at, updated_at, due_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
@@ -322,6 +331,7 @@ export const registerIpcHandlers = (ipcMain, db) => {
         payload.priority,
         payload.createdAt,
         payload.updatedAt,
+        payload.dueDate ?? null,
       );
       const row = db
         .prepare("SELECT * FROM issues WHERE id = ?")
@@ -356,6 +366,10 @@ export const registerIpcHandlers = (ipcMain, db) => {
       if (updates.priority !== undefined) {
         fields.push("priority = ?");
         values.push(updates.priority);
+      }
+      if (updates.dueDate !== undefined) {
+        fields.push("due_date = ?");
+        values.push(updates.dueDate);
       }
       fields.push("updated_at = ?");
       values.push(Date.now());
@@ -791,8 +805,8 @@ export const registerIpcHandlers = (ipcMain, db) => {
       const payload = parsed.data;
       db.prepare(
         `INSERT INTO reminders
-          (id, project_id, text, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+          (id, project_id, text, status, created_at, updated_at, remind_at, notified)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
       ).run(
         payload.id,
         payload.projectId,
@@ -800,6 +814,7 @@ export const registerIpcHandlers = (ipcMain, db) => {
         payload.status,
         payload.createdAt,
         payload.updatedAt ?? null,
+        payload.remindAt ?? null,
       );
       const row = db
         .prepare("SELECT * FROM reminders WHERE id = ?")
@@ -826,6 +841,17 @@ export const registerIpcHandlers = (ipcMain, db) => {
       if (updates.status !== undefined) {
         fields.push("status = ?");
         values.push(updates.status);
+      }
+      if (updates.remindAt !== undefined) {
+        fields.push("remind_at = ?");
+        values.push(updates.remindAt);
+        // Reset notified when remind_at changes
+        fields.push("notified = ?");
+        values.push(0);
+      }
+      if (updates.notified !== undefined) {
+        fields.push("notified = ?");
+        values.push(updates.notified);
       }
       const updatedAt = updates.updatedAt ?? Date.now();
       fields.push("updated_at = ?");

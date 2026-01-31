@@ -15,6 +15,7 @@ export interface Task {
   createdAt: Date;
   updatedAt?: Date | null;
   position?: number | null;
+  dueDate?: Date | null;
 }
 
 export interface Issue {
@@ -26,6 +27,7 @@ export interface Issue {
   priority: "low" | "medium" | "high";
   createdAt: Date;
   updatedAt: Date;
+  dueDate?: Date | null;
 }
 
 export interface IssueComment {
@@ -82,6 +84,7 @@ export interface Reminder {
   status: ReminderStatus;
   createdAt: Date;
   updatedAt: Date | null;
+  remindAt: Date | null;
 }
 
 export type KanbanColumn = {

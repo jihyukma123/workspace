@@ -231,6 +231,20 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                         >
                           {selectedIssue.priority}
                         </Badge>
+                        {selectedIssue.dueDate && (
+                          <Badge
+                            className={cn(
+                              "border flex items-center gap-1",
+                              selectedIssue.dueDate < new Date() &&
+                                selectedIssue.status !== "done"
+                                ? "bg-destructive/20 text-destructive border-destructive/30"
+                                : "bg-muted text-muted-foreground border-border",
+                            )}
+                          >
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(selectedIssue.dueDate)}
+                          </Badge>
+                        )}
                       </div>
                       <div className="mt-2 text-base font-semibold text-foreground">
                         {selectedIssue.title}
@@ -327,6 +341,37 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                           <SelectItem value="high">High</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-xs font-mono text-muted-foreground">
+                        Due Date (optional)
+                      </div>
+                      <input
+                        type="date"
+                        className={cn(
+                          "flex h-9 w-full rounded-md border bg-input border-border px-3 py-1 text-sm",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          "disabled:cursor-not-allowed disabled:opacity-50",
+                          selectedIssue.dueDate &&
+                            selectedIssue.dueDate < new Date() &&
+                            selectedIssue.status !== "done"
+                            ? "text-destructive"
+                            : "",
+                        )}
+                        value={
+                          selectedIssue.dueDate
+                            ? selectedIssue.dueDate.toISOString().split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) => {
+                          void updateIssue(selectedIssue.id, {
+                            dueDate: e.target.value
+                              ? new Date(e.target.value)
+                              : null,
+                          });
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -631,6 +676,20 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                         >
                           {issue.priority}
                         </Badge>
+                        {issue.dueDate && (
+                          <Badge
+                            className={cn(
+                              "border flex items-center gap-1",
+                              issue.dueDate < new Date() &&
+                                issue.status !== "done"
+                                ? "bg-destructive/20 text-destructive border-destructive/30"
+                                : "bg-muted text-muted-foreground border-border",
+                            )}
+                          >
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(issue.dueDate)}
+                          </Badge>
+                        )}
                       </div>
                       <h4 className="mt-1 text-sm font-semibold text-foreground truncate">
                         {issue.title}

@@ -19,6 +19,7 @@ export type TaskRecord = {
   createdAt: number;
   updatedAt: number | null;
   position: number | null;
+  dueDate: number | null;
 };
 
 export type IssueRecord = {
@@ -30,6 +31,7 @@ export type IssueRecord = {
   priority: "low" | "medium" | "high";
   createdAt: number;
   updatedAt: number;
+  dueDate: number | null;
 };
 
 export type IssueCommentRecord = {
@@ -76,6 +78,8 @@ export type ReminderRecord = {
   status: "todo" | "progress" | "done";
   createdAt: number;
   updatedAt: number | null;
+  remindAt: number | null;
+  notified: number;
 };
 
 export type FeedbackRecord = {

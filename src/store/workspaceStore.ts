@@ -43,13 +43,19 @@ interface WorkspaceState extends MemoState {
   addProject: (project: Project) => Promise<Project | null>;
   deleteProject: (projectId: string) => Promise<void>;
   addTask: (task: Task) => Promise<Task | null>;
+  updateTask: (
+    taskId: string,
+    updates: Partial<
+      Pick<Task, "title" | "description" | "priority" | "dueDate">
+    >,
+  ) => Promise<void>;
   updateTaskStatus: (taskId: string, status: Task["status"]) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   addIssue: (issue: Issue) => Promise<Issue | null>;
   updateIssue: (
     issueId: string,
     updates: Partial<
-      Pick<Issue, "title" | "description" | "status" | "priority">
+      Pick<Issue, "title" | "description" | "status" | "priority" | "dueDate">
     >,
   ) => Promise<void>;
   updateIssueStatus: (
@@ -69,7 +75,14 @@ interface WorkspaceState extends MemoState {
   addWikiPage: (page: WikiPage) => Promise<WikiPage | null>;
   updateWikiPage: (
     pageId: string,
-    updates: Pick<WikiPage, "title" | "content">,
+    updates: Partial<
+      Pick<WikiPage, "title" | "content" | "parentId" | "position">
+    >,
+  ) => Promise<void>;
+  moveWikiPage: (
+    pageId: string,
+    parentId: string | null,
+    position: number,
   ) => Promise<void>;
   deleteWikiPage: (pageId: string) => Promise<void>;
   setSelectedMemoId: (id: string | null) => void;
@@ -90,7 +103,7 @@ interface WorkspaceState extends MemoState {
   addReminder: (reminder: Reminder) => Promise<Reminder | null>;
   updateReminder: (
     reminderId: string,
-    updates: Pick<Reminder, "text" | "status">,
+    updates: Partial<Pick<Reminder, "text" | "status" | "remindAt">>,
   ) => Promise<boolean>;
   deleteReminder: (reminderId: string) => Promise<boolean>;
 }
@@ -112,6 +125,7 @@ const mapTask = (record: TaskRecord): Task => ({
   createdAt: new Date(record.createdAt),
   updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
   position: record.position,
+  dueDate: record.dueDate ? new Date(record.dueDate) : null,
 });
 
 const mapIssue = (record: IssueRecord): Issue => ({
@@ -123,6 +137,7 @@ const mapIssue = (record: IssueRecord): Issue => ({
   priority: record.priority,
   createdAt: new Date(record.createdAt),
   updatedAt: new Date(record.updatedAt),
+  dueDate: record.dueDate ? new Date(record.dueDate) : null,
 });
 
 const mapIssueComment = (record: IssueCommentRecord): IssueComment => ({
@@ -170,6 +185,7 @@ const mapReminder = (record: ReminderRecord): Reminder => ({
   status: record.status,
   createdAt: new Date(record.createdAt),
   updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
+  remindAt: record.remindAt ? new Date(record.remindAt) : null,
 });
 
 const getMemoTitleFromContent = (content: string) => {
@@ -409,6 +425,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       priority: task.priority,
       createdAt: task.createdAt.getTime(),
       position: task.position ?? null,
+      dueDate: task.dueDate ? task.dueDate.getTime() : null,
     };
     const result = await api.tasks.create(payload);
     if (!result.ok) {
@@ -418,6 +435,31 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const created = mapTask(result.data);
     set((state) => ({ tasks: [...state.tasks, created] }));
     return created;
+  },
+
+  updateTask: async (taskId, updates) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const apiUpdates = {
+      ...updates,
+      dueDate:
+        updates.dueDate !== undefined
+          ? updates.dueDate
+            ? updates.dueDate.getTime()
+            : null
+          : undefined,
+    };
+    const result = await api.tasks.update({ id: taskId, updates: apiUpdates });
+    if (!result.ok) {
+      reportError(result, "tasks:update");
+      return;
+    }
+    const updated = mapTask(result.data);
+    set((state) => ({
+      tasks: state.tasks.map((task) => (task.id === taskId ? updated : task)),
+    }));
   },
 
   updateTaskStatus: async (taskId, status) => {
@@ -465,6 +507,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       priority: issue.priority,
       createdAt: issue.createdAt.getTime(),
       updatedAt: issue.updatedAt.getTime(),
+      dueDate: issue.dueDate ? issue.dueDate.getTime() : null,
     };
     const result = await api.issues.create(payload);
     if (!result.ok) {
@@ -489,6 +532,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         description: updates.description,
         status: updates.status,
         priority: updates.priority,
+        dueDate:
+          updates.dueDate !== undefined
+            ? updates.dueDate
+              ? updates.dueDate.getTime()
+              : null
+            : undefined,
       },
     });
     if (!result.ok) {
@@ -624,6 +673,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const result = await api.wiki.update({ id: pageId, updates });
     if (!result.ok) {
       reportError(result, "wiki:update");
+      return;
+    }
+    const updated = mapWikiPage(result.data);
+    set((state) => ({
+      wikiPages: state.wikiPages.map((page) =>
+        page.id === pageId ? updated : page,
+      ),
+    }));
+  },
+
+  moveWikiPage: async (pageId, parentId, position) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const result = await api.wiki.update({
+      id: pageId,
+      updates: { parentId, position },
+    });
+    if (!result.ok) {
+      reportError(result, "wiki:move");
       return;
     }
     const updated = mapWikiPage(result.data);
@@ -871,6 +941,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       status: reminder.status,
       createdAt: reminder.createdAt.getTime(),
       updatedAt: reminder.updatedAt ? reminder.updatedAt.getTime() : null,
+      remindAt: reminder.remindAt ? reminder.remindAt.getTime() : null,
+      notified: 0,
     };
     const result = await api.reminders.create(payload);
     if (!result.ok) {
@@ -892,6 +964,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       updates: {
         text: updates.text,
         status: updates.status,
+        remindAt: updates.remindAt
+          ? updates.remindAt.getTime()
+          : updates.remindAt === null
+            ? null
+            : undefined,
         updatedAt: Date.now(),
       },
     });

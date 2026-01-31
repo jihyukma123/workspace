@@ -41,6 +41,7 @@ export const schemas = {
     priority: z.enum(["low", "medium", "high"]),
     createdAt: timestampSchema,
     position: z.number().int().optional().nullable(),
+    dueDate: timestampSchema.nullable().optional(),
   }),
   taskUpdate: z.object({
     id: idSchema,
@@ -51,6 +52,7 @@ export const schemas = {
         status: z.enum(["backlog", "in-progress", "done"]).optional(),
         priority: z.enum(["low", "medium", "high"]).optional(),
         position: z.number().int().optional().nullable(),
+        dueDate: timestampSchema.nullable().optional(),
       })
       .refine((value) => Object.keys(value).length > 0, {
         message: "No updates provided",
@@ -67,6 +69,7 @@ export const schemas = {
     priority: z.enum(["low", "medium", "high"]),
     createdAt: timestampSchema,
     updatedAt: timestampSchema,
+    dueDate: timestampSchema.nullable().optional(),
   }),
   issueUpdate: z.object({
     id: idSchema,
@@ -76,6 +79,7 @@ export const schemas = {
         description: z.string().optional().nullable(),
         status: z.enum(["todo", "in-progress", "done"]).optional(),
         priority: z.enum(["low", "medium", "high"]).optional(),
+        dueDate: timestampSchema.nullable().optional(),
       })
       .refine((value) => Object.keys(value).length > 0, {
         message: "No updates provided",
@@ -165,6 +169,7 @@ export const schemas = {
     status: z.enum(["todo", "progress", "done"]),
     createdAt: timestampSchema,
     updatedAt: timestampSchema.nullable().optional(),
+    remindAt: timestampSchema.nullable().optional(),
   }),
   reminderUpdate: z.object({
     id: idSchema,
@@ -173,6 +178,8 @@ export const schemas = {
         text: z.string().min(1).optional(),
         status: z.enum(["todo", "progress", "done"]).optional(),
         updatedAt: timestampSchema.nullable().optional(),
+        remindAt: timestampSchema.nullable().optional(),
+        notified: z.number().int().min(0).max(1).optional(),
       })
       .refine((value) => Object.keys(value).length > 0, {
         message: "No updates provided",

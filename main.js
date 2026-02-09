@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, Notification } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
-import { openDatabase } from "./electron/db.js";
+import { backupDatabaseFiles, openDatabase } from "./electron/db.js";
 import { registerIpcHandlers } from "./electron/ipc.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const VITE_DEV_SERVER_URL = "http://localhost:8080";
 let db = null;
+let dbPath = null;
 let reminderCheckInterval = null;
 
 function checkDueReminders() {
@@ -87,7 +88,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  db = openDatabase();
+  const opened = openDatabase();
+  db = opened.db;
+  dbPath = opened.dbPath;
   registerIpcHandlers(ipcMain, db);
   createWindow();
   startReminderChecker();
@@ -110,5 +113,12 @@ app.on("before-quit", () => {
   if (db) {
     db.close();
     db = null;
+  }
+  if (dbPath) {
+    try {
+      backupDatabaseFiles({ dbPath, reason: "shutdown" });
+    } catch (error) {
+      console.warn("[db] Shutdown backup failed", error);
+    }
   }
 });

@@ -1,9 +1,16 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Check, Clock, Plus, Trash2, X } from "lucide-react";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Popover,
@@ -28,6 +35,175 @@ function formatDateTimeLocal(date: Date | null): string {
   const offset = date.getTimezoneOffset();
   const local = new Date(date.getTime() - offset * 60 * 1000);
   return local.toISOString().slice(0, 16);
+}
+
+function getLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDateTime(value: string) {
+  if (!value) return null;
+  const [dateStr, timeStr] = value.split("T");
+  if (!dateStr || !timeStr) return null;
+  return { dateStr, timeStr };
+}
+
+function buildLocalDateTime(dateStr: string, timeStr: string) {
+  if (!dateStr || !timeStr) return "";
+  return `${dateStr}T${timeStr}`;
+}
+
+const TIME_OPTIONS = Array.from({ length: 24 * 12 }, (_, index) => {
+  const totalMinutes = index * 5;
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+  const minutes = String(totalMinutes % 60).padStart(2, "0");
+  return `${hours}:${minutes}`;
+});
+
+function getTimeMinutes(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
+  return hours * 60 + minutes;
+}
+
+function getNextFutureTime(stepMinutes = 5) {
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const nextSlotMinutes =
+    Math.ceil((currentMinutes + 1) / stepMinutes) * stepMinutes;
+  const clampedMinutes = Math.min(nextSlotMinutes, 24 * 60 - stepMinutes);
+  const hours = String(Math.floor(clampedMinutes / 60)).padStart(2, "0");
+  const minutes = String(clampedMinutes % 60).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+interface ReminderDateTimePickerProps {
+  value: string;
+  onChange: (value: string) => void;
+  hideClear?: boolean;
+}
+
+function ReminderDateTimePicker({
+  value,
+  onChange,
+  hideClear,
+}: ReminderDateTimePickerProps) {
+  const [dateStr, setDateStr] = useState("");
+  const [timeStr, setTimeStr] = useState("");
+
+  useEffect(() => {
+    const parsed = parseLocalDateTime(value);
+    if (!parsed) {
+      setDateStr("");
+      setTimeStr("");
+      return;
+    }
+    setDateStr(parsed.dateStr);
+    setTimeStr(parsed.timeStr);
+  }, [value]);
+
+  const todayStr = getLocalDateString(new Date());
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = getLocalDateString(tomorrow);
+  const nowMinutes =
+    dateStr === todayStr
+      ? new Date().getHours() * 60 + new Date().getMinutes()
+      : null;
+
+  const applyDatePreset = (nextDateStr: string) => {
+    const nextTime = timeStr || getNextFutureTime();
+    setDateStr(nextDateStr);
+    setTimeStr(nextTime);
+    onChange(buildLocalDateTime(nextDateStr, nextTime));
+  };
+
+  const handleTimeChange = (nextTime: string) => {
+    const nextDate = dateStr || todayStr;
+    setDateStr(nextDate);
+    setTimeStr(nextTime);
+    onChange(buildLocalDateTime(nextDate, nextTime));
+  };
+
+  const handleTimeOpenChange = (open: boolean) => {
+    if (!open || timeStr) {
+      return;
+    }
+    const nextTime = getNextFutureTime();
+    const nextDate = dateStr || todayStr;
+    setDateStr(nextDate);
+    setTimeStr(nextTime);
+    onChange(buildLocalDateTime(nextDate, nextTime));
+  };
+
+  const handleClear = () => {
+    setDateStr("");
+    setTimeStr("");
+    onChange("");
+  };
+
+  return (
+    <div className={cn("space-y-2")}>
+      <div className={cn("flex items-center gap-2")}>
+        <Button
+          size="sm"
+          variant={dateStr === todayStr ? "secondary" : "outline"}
+          className={cn("text-xs")}
+          onClick={() => applyDatePreset(todayStr)}
+        >
+          Today
+        </Button>
+        <Button
+          size="sm"
+          variant={dateStr === tomorrowStr ? "secondary" : "outline"}
+          className={cn("text-xs")}
+          onClick={() => applyDatePreset(tomorrowStr)}
+        >
+          Tomorrow
+        </Button>
+      </div>
+      <Select
+        value={timeStr}
+        onValueChange={handleTimeChange}
+        onOpenChange={handleTimeOpenChange}
+      >
+        <SelectTrigger
+          className={cn(
+            "h-9 w-full justify-center border border-border text-center text-xs",
+          )}
+        >
+          <SelectValue placeholder="Select time" />
+        </SelectTrigger>
+        <SelectContent className={cn("max-h-56 border border-border")}>
+          {TIME_OPTIONS.map((time) => (
+            <SelectItem
+              key={time}
+              value={time}
+              className={cn("justify-center text-xs")}
+              disabled={
+                nowMinutes !== null && getTimeMinutes(time) <= nowMinutes
+              }
+            >
+              {time}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {!hideClear && (dateStr || timeStr) && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className={cn("w-full text-xs")}
+          onClick={handleClear}
+        >
+          Clear
+        </Button>
+      )}
+    </div>
+  );
 }
 
 interface ReminderTimeEditorProps {
@@ -55,12 +231,6 @@ function ReminderTimeEditor({
     setIsOpen(false);
   };
 
-  const handleClear = async () => {
-    setLocalTime("");
-    await onUpdate(reminder.id, { remindAt: null });
-    setIsOpen(false);
-  };
-
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -84,11 +254,10 @@ function ReminderTimeEditor({
           <label className={cn("text-xs font-medium text-foreground")}>
             Remind me at
           </label>
-          <Input
-            type="datetime-local"
+          <ReminderDateTimePicker
             value={localTime}
-            onChange={(e) => setLocalTime(e.target.value)}
-            className={cn("w-full")}
+            onChange={setLocalTime}
+            hideClear
           />
           <div className={cn("flex gap-2")}>
             <Button
@@ -98,14 +267,18 @@ function ReminderTimeEditor({
             >
               Save
             </Button>
-            {reminder.remindAt && (
+            {(localTime || reminder.remindAt) && (
               <Button
                 size="sm"
                 variant="ghost"
                 className={cn(
-                  "text-xs text-destructive hover:text-destructive",
+                  "flex-1 text-xs text-destructive hover:text-destructive",
                 )}
-                onClick={handleClear}
+                onClick={() => {
+                  setLocalTime("");
+                  void onUpdate(reminder.id, { remindAt: null });
+                  setIsOpen(false);
+                }}
               >
                 Clear
               </Button>
@@ -297,22 +470,10 @@ export function ReminderPanelContent() {
                 <label className={cn("text-xs font-medium text-foreground")}>
                   Remind me at
                 </label>
-                <Input
-                  type="datetime-local"
+                <ReminderDateTimePicker
                   value={newRemindAt}
-                  onChange={(e) => setNewRemindAt(e.target.value)}
-                  className={cn("w-full")}
+                  onChange={setNewRemindAt}
                 />
-                {newRemindAt && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className={cn("w-full text-xs")}
-                    onClick={() => setNewRemindAt("")}
-                  >
-                    Clear
-                  </Button>
-                )}
               </div>
             </PopoverContent>
           </Popover>

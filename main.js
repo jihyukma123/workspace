@@ -41,10 +41,10 @@ function checkDueReminders() {
         notification.show();
       }
 
-      // Mark as notified
-      db.prepare("UPDATE reminders SET notified = 1 WHERE id = ?").run(
-        reminder.id,
-      );
+      // Mark as notified and clear remind_at after firing
+      db.prepare(
+        "UPDATE reminders SET notified = 1, remind_at = NULL, updated_at = ? WHERE id = ?",
+      ).run(Date.now(), reminder.id);
     }
   } catch (error) {
     console.error("Error checking due reminders:", error);

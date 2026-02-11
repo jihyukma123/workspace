@@ -44,10 +44,12 @@ export function MemoEditor() {
 
   const activeMemo =
     projectMemos.find((memo) => memo.id === selectedMemoId) ?? null;
+  const activeMemoId = activeMemo?.id ?? null;
   const [isEditing, setIsEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState<MemoSnapshot | null>(null);
   const [isMemoSubmitting, setIsMemoSubmitting] = useState(false);
   const [isMemoSaving, setIsMemoSaving] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const memoSubmitLock = useRef(false);
   const memoSaveLock = useRef(false);
 
@@ -61,6 +63,48 @@ export function MemoEditor() {
     return () =>
       window.removeEventListener("shortcut:new-memo", handleShortcut);
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    setIsDeleteDialogOpen(false);
+  }, [selectedMemoId]);
+
+  useEffect(() => {
+    if (isEditing) {
+      setIsDeleteDialogOpen(false);
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.metaKey || event.key !== "Backspace") {
+        return;
+      }
+      if (event.repeat) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      const isEditableTarget =
+        !!target &&
+        (target.isContentEditable ||
+          !!target.closest(
+            'input, textarea, select, [contenteditable="true"], [role="textbox"]',
+          ));
+      if (isEditableTarget) {
+        return;
+      }
+
+      if (!activeMemoId || isEditing) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsDeleteDialogOpen(true);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeMemoId, isEditing]);
 
   const handleAddMemoRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -352,7 +396,10 @@ export function MemoEditor() {
                   <Edit2 className="w-4 h-4 mr-1" />
                   Edit Mode
                 </Button>
-                <AlertDialog>
+                <AlertDialog
+                  open={isDeleteDialogOpen}
+                  onOpenChange={setIsDeleteDialogOpen}
+                >
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="destructive"

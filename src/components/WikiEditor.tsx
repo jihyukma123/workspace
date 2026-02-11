@@ -291,12 +291,14 @@ export function WikiEditor() {
   const [editContent, setEditContent] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState("");
   const [newPageParentId, setNewPageParentId] = useState<string | null>(null);
   const [isPageSubmitting, setIsPageSubmitting] = useState(false);
   const [isPageSaving, setIsPageSaving] = useState(false);
   const pageSubmitLock = useRef(false);
   const pageSaveLock = useRef(false);
+  const selectedPage = projectPages.find((p) => p.id === selectedPageId);
 
   // Listen for keyboard shortcut event
   useEffect(() => {
@@ -309,6 +311,48 @@ export function WikiEditor() {
       window.removeEventListener("shortcut:new-wiki-page", handleShortcut);
   }, []);
 
+  useEffect(() => {
+    setIsDeleteDialogOpen(false);
+  }, [selectedPageId]);
+
+  useEffect(() => {
+    if (isEditing) {
+      setIsDeleteDialogOpen(false);
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.metaKey || event.key !== "Backspace") {
+        return;
+      }
+      if (event.repeat) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      const isEditableTarget =
+        !!target &&
+        (target.isContentEditable ||
+          !!target.closest(
+            'input, textarea, select, [contenteditable="true"], [role="textbox"]',
+          ));
+      if (isEditableTarget) {
+        return;
+      }
+
+      if (!selectedPageId || !selectedPage || isEditing || isAddOpen) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsDeleteDialogOpen(true);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isAddOpen, isEditing, selectedPage, selectedPageId]);
+
   // Drag and drop state
   const [draggedNode, setDraggedNode] = useState<WikiTreeNode | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -316,7 +360,6 @@ export function WikiEditor() {
     "before" | "inside" | "after" | null
   >(null);
 
-  const selectedPage = projectPages.find((p) => p.id === selectedPageId);
   const breadcrumbPath = useMemo(
     () =>
       selectedPageId ? getBreadcrumbPath(selectedPageId, projectPages) : [],
@@ -751,7 +794,10 @@ export function WikiEditor() {
                         <Edit2 className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
-                      <AlertDialog>
+                      <AlertDialog
+                        open={isDeleteDialogOpen}
+                        onOpenChange={setIsDeleteDialogOpen}
+                      >
                         <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="sm">
                             <Trash2 className="w-4 h-4 mr-1" />

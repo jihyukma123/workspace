@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addDays,
   addMonths,
@@ -158,8 +158,11 @@ export function DailyLogView() {
     requestAnimationFrame(() => textareaRef.current?.focus());
   };
 
-  const handleSave = async () => {
-    if (!selectedProjectId || !hasChanges) {
+  const handleSave = useCallback(async () => {
+    if (!selectedProjectId) {
+      return;
+    }
+    if (content === (selectedLog?.content ?? "")) {
       return;
     }
     if (saveLock.current) {
@@ -187,7 +190,26 @@ export function DailyLogView() {
       setIsSaving(false);
       saveLock.current = false;
     }
-  };
+  }, [
+    addDailyLog,
+    content,
+    dateKey,
+    selectedLog,
+    selectedProjectId,
+    updateDailyLog,
+  ]);
+
+  useEffect(() => {
+    if (!selectedProjectId || !hasChanges || isSaving) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void handleSave();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [handleSave, hasChanges, isSaving, selectedProjectId]);
 
   return (
     <div className="flex-1 flex flex-col p-6 overflow-hidden">

@@ -798,7 +798,7 @@ export function WikiEditor() {
                   <Textarea
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className="min-h-[500px] text-sm resize-none bg-input border-border focus-visible:ring-ring"
+                    className="min-h-[500px] text-sm resize-none bg-input border-border focus-visible:ring-inset focus-visible:ring-offset-0"
                     placeholder="Write your documentation in Markdown..."
                   />
                 </div>

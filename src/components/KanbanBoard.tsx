@@ -274,7 +274,7 @@ export function KanbanBoard() {
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent defaultAction="action">
           <AlertDialogHeader>
             <AlertDialogTitle
               className={cn("font-mono text-lg font-bold text-primary")}

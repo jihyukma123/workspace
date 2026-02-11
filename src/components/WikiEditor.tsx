@@ -758,7 +758,10 @@ export function WikiEditor() {
                             Delete
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-popover border-border">
+                        <AlertDialogContent
+                          defaultAction="action"
+                          className="bg-popover border-border"
+                        >
                           <AlertDialogHeader>
                             <AlertDialogTitle>
                               Delete this page?

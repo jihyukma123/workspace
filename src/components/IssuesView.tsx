@@ -253,7 +253,10 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-popover border-border">
+                      <AlertDialogContent
+                        defaultAction="action"
+                        className="bg-popover border-border"
+                      >
                         <AlertDialogHeader>
                           <AlertDialogTitle>
                             Delete this issue?
@@ -685,7 +688,10 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-popover border-border">
+                        <AlertDialogContent
+                          defaultAction="action"
+                          className="bg-popover border-border"
+                        >
                           <AlertDialogHeader>
                             <AlertDialogTitle>
                               Delete this issue?

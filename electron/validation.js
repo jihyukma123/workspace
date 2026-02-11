@@ -93,8 +93,8 @@ export const schemas = {
   wikiCreate: z.object({
     id: idSchema,
     projectId: idSchema,
-    title: z.string().min(1),
-    content: z.string().min(1),
+    title: z.string().trim().min(1),
+    content: z.string(),
     parentId: idSchema.nullable().optional(),
     createdAt: timestampSchema,
     updatedAt: timestampSchema,
@@ -104,8 +104,8 @@ export const schemas = {
     id: idSchema,
     updates: z
       .object({
-        title: z.string().min(1).optional(),
-        content: z.string().min(1).optional(),
+        title: z.string().trim().min(1).optional(),
+        content: z.string().optional(),
         parentId: idSchema.nullable().optional(),
         position: z.number().int().optional().nullable(),
       })

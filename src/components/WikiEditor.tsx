@@ -40,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { renderMarkdown } from "@/components/markdown/renderMarkdown";
 import { WikiPage } from "@/types/workspace";
+import { toast } from "@/hooks/use-toast";
 
 interface WikiTreeNode extends WikiPage {
   children: WikiTreeNode[];
@@ -372,12 +373,22 @@ export function WikiEditor() {
   const handleSave = async () => {
     if (!selectedPageId) return;
     if (pageSaveLock.current) return;
+
+    const trimmedTitle = editTitle.trim();
+    if (!trimmedTitle) {
+      toast({
+        title: "Page title required",
+        description: "Add a title before saving this wiki page.",
+      });
+      return;
+    }
+
     pageSaveLock.current = true;
     setIsPageSaving(true);
     setIsEditing(false);
     try {
       await updateWikiPage(selectedPageId, {
-        title: editTitle.trim() || "Untitled",
+        title: trimmedTitle,
         content: editContent,
       });
     } finally {
@@ -395,49 +406,54 @@ export function WikiEditor() {
   const handleAddPage = async () => {
     if (!selectedProjectId) return;
 
-    if (newPageTitle.trim()) {
-      if (pageSubmitLock.current) return;
-      pageSubmitLock.current = true;
-      setIsPageSubmitting(true);
+    const trimmedTitle = newPageTitle.trim();
+    if (!trimmedTitle) {
+      toast({
+        title: "Page title required",
+        description: "Add a title to create a new wiki page.",
+      });
+      return;
+    }
 
-      // Calculate position for new page
-      const siblings = projectPages.filter(
-        (p) => p.parentId === newPageParentId,
-      );
-      const maxPosition = Math.max(0, ...siblings.map((s) => s.position ?? 0));
+    if (pageSubmitLock.current) return;
+    pageSubmitLock.current = true;
+    setIsPageSubmitting(true);
 
-      const newPage: WikiPage = {
-        id: Date.now().toString(),
-        projectId: selectedProjectId,
-        title: newPageTitle,
-        content: "",
-        parentId: newPageParentId,
-        children: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        position: maxPosition + 1,
-      };
+    // Calculate position for new page
+    const siblings = projectPages.filter((p) => p.parentId === newPageParentId);
+    const maxPosition = Math.max(0, ...siblings.map((s) => s.position ?? 0));
 
-      try {
-        const created = await addWikiPage(newPage);
-        if (created) {
-          setSelectedPageId(created.id);
-          setEditTitle(created.title);
-          setEditContent(created.content);
-          setIsEditing(true);
-          setNewPageTitle("");
-          setNewPageParentId(null);
-          setIsAddOpen(false);
+    const newPage: WikiPage = {
+      id: Date.now().toString(),
+      projectId: selectedProjectId,
+      title: trimmedTitle,
+      content: "",
+      parentId: newPageParentId,
+      children: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      position: maxPosition + 1,
+    };
 
-          // Expand parent if adding as child
-          if (newPageParentId) {
-            setExpandedIds((prev) => new Set([...prev, newPageParentId]));
-          }
+    try {
+      const created = await addWikiPage(newPage);
+      if (created) {
+        setSelectedPageId(created.id);
+        setEditTitle(created.title);
+        setEditContent(created.content);
+        setIsEditing(true);
+        setNewPageTitle("");
+        setNewPageParentId(null);
+        setIsAddOpen(false);
+
+        // Expand parent if adding as child
+        if (newPageParentId) {
+          setExpandedIds((prev) => new Set([...prev, newPageParentId]));
         }
-      } finally {
-        setIsPageSubmitting(false);
-        pageSubmitLock.current = false;
       }
+    } finally {
+      setIsPageSubmitting(false);
+      pageSubmitLock.current = false;
     }
   };
 

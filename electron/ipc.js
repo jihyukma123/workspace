@@ -90,6 +90,62 @@ const handleDbError = (error, message) => {
   });
 };
 
+const buildLikeQuery = (value) => `%${String(value ?? "").trim()}%`;
+
+const withWikiSubtreeCte = (bodySql) => `
+  WITH RECURSIVE subtree(id) AS (
+    SELECT id FROM wiki_pages WHERE id = ?
+    UNION ALL
+    SELECT wp.id FROM wiki_pages wp
+    JOIN subtree s ON wp.parent_id = s.id
+  )
+  ${bodySql}
+`;
+
+export const purgeExpiredTrash = (db, olderThan) => {
+  const transaction = db.transaction(() => {
+    const memoDeleted = db
+      .prepare(
+        "DELETE FROM memos WHERE deleted_at IS NOT NULL AND deleted_at <= ?",
+      )
+      .run(olderThan).changes;
+
+    const issueDeleted = db
+      .prepare(
+        "DELETE FROM issues WHERE deleted_at IS NOT NULL AND deleted_at <= ?",
+      )
+      .run(olderThan).changes;
+
+    const wikiRoots = db
+      .prepare(
+        `
+          SELECT wp.id
+          FROM wiki_pages wp
+          LEFT JOIN wiki_pages parent ON parent.id = wp.parent_id
+          WHERE wp.deleted_at IS NOT NULL
+            AND wp.deleted_at <= ?
+            AND (wp.parent_id IS NULL OR parent.deleted_at IS NULL)
+        `,
+      )
+      .all(olderThan);
+
+    const deleteWikiSubtree = db.prepare(
+      withWikiSubtreeCte(
+        "DELETE FROM wiki_pages WHERE id IN (SELECT id FROM subtree)",
+      ),
+    );
+
+    let wikiDeleted = 0;
+    for (const root of wikiRoots) {
+      wikiDeleted += deleteWikiSubtree.run(root.id).changes;
+    }
+
+    return { memoDeleted, issueDeleted, wikiDeleted };
+  });
+
+  return transaction();
+};
+
 export const registerIpcHandlers = (ipcMain, db) => {
   ipcMain.handle("projects:list", () => {
     try {
@@ -285,7 +341,7 @@ export const registerIpcHandlers = (ipcMain, db) => {
     try {
       const rows = db
         .prepare(
-          "SELECT * FROM issues WHERE project_id = ? ORDER BY created_at ASC",
+          "SELECT * FROM issues WHERE project_id = ? AND deleted_at IS NULL ORDER BY created_at ASC",
         )
         .all(parsed.data.projectId);
       return ok(rows.map(mapIssue));
@@ -371,11 +427,20 @@ export const registerIpcHandlers = (ipcMain, db) => {
       return parsed;
     }
     try {
-      const info = db
-        .prepare("DELETE FROM issues WHERE id = ?")
-        .run(parsed.data.id);
-      if (info.changes === 0) {
+      const row = db
+        .prepare("SELECT id, deleted_at FROM issues WHERE id = ?")
+        .get(parsed.data.id);
+      if (!row) {
         return err("NOT_FOUND", "Issue not found");
+      }
+      if (row.deleted_at != null) {
+        return ok({ id: parsed.data.id });
+      }
+      const info = db
+        .prepare("UPDATE issues SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL")
+        .run(Date.now(), parsed.data.id);
+      if (info.changes === 0) {
+        return ok({ id: parsed.data.id });
       }
       return ok({ id: parsed.data.id });
     } catch (error) {
@@ -450,6 +515,7 @@ export const registerIpcHandlers = (ipcMain, db) => {
         .prepare(
           `SELECT * FROM wiki_pages
            WHERE project_id = ?
+             AND deleted_at IS NULL
            ORDER BY position IS NULL, position ASC, created_at ASC`,
         )
         .all(parsed.data.projectId);
@@ -536,12 +602,31 @@ export const registerIpcHandlers = (ipcMain, db) => {
       return parsed;
     }
     try {
-      const info = db
-        .prepare("DELETE FROM wiki_pages WHERE id = ?")
-        .run(parsed.data.id);
-      if (info.changes === 0) {
+      const row = db
+        .prepare("SELECT id, deleted_at FROM wiki_pages WHERE id = ?")
+        .get(parsed.data.id);
+      if (!row) {
         return err("NOT_FOUND", "Wiki page not found");
       }
+      if (row.deleted_at != null) {
+        return ok({ id: parsed.data.id });
+      }
+
+      const statement = db.prepare(
+        `
+          WITH RECURSIVE subtree(id) AS (
+            SELECT id FROM wiki_pages WHERE id = ? AND deleted_at IS NULL
+            UNION ALL
+            SELECT wp.id FROM wiki_pages wp
+            JOIN subtree s ON wp.parent_id = s.id
+          )
+          UPDATE wiki_pages
+          SET deleted_at = ?
+          WHERE id IN (SELECT id FROM subtree)
+            AND deleted_at IS NULL
+        `,
+      );
+      statement.run(parsed.data.id, Date.now());
       return ok({ id: parsed.data.id });
     } catch (error) {
       return handleDbError(error, "Failed to delete wiki page");
@@ -556,7 +641,7 @@ export const registerIpcHandlers = (ipcMain, db) => {
     try {
       const rows = db
         .prepare(
-          "SELECT * FROM memos WHERE project_id = ? ORDER BY created_at ASC",
+          "SELECT * FROM memos WHERE project_id = ? AND deleted_at IS NULL ORDER BY created_at ASC",
         )
         .all(parsed.data.projectId);
       return ok(rows.map(mapMemo));
@@ -652,11 +737,21 @@ export const registerIpcHandlers = (ipcMain, db) => {
       return parsed;
     }
     try {
-      const info = db
-        .prepare("DELETE FROM memos WHERE id = ?")
-        .run(parsed.data.id);
-      if (info.changes === 0) {
+      const row = db
+        .prepare("SELECT id, deleted_at FROM memos WHERE id = ?")
+        .get(parsed.data.id);
+      if (!row) {
         return err("NOT_FOUND", "Memo not found");
+      }
+      if (row.deleted_at != null) {
+        return ok({ id: parsed.data.id });
+      }
+
+      const info = db
+        .prepare("UPDATE memos SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL")
+        .run(Date.now(), parsed.data.id);
+      if (info.changes === 0) {
+        return ok({ id: parsed.data.id });
       }
       return ok({ id: parsed.data.id });
     } catch (error) {
@@ -863,6 +958,237 @@ export const registerIpcHandlers = (ipcMain, db) => {
       return ok({ id: parsed.data.id });
     } catch (error) {
       return handleDbError(error, "Failed to delete reminder");
+    }
+  });
+
+  ipcMain.handle("trash:list", (_event, input) => {
+    const parsed = parseInput(schemas.trashList, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+
+    const { projectId, type, query } = parsed.data;
+    const like = query ? buildLikeQuery(query) : null;
+
+    try {
+      const items = [];
+
+      if (!type || type === "memo") {
+        const memoRows = db
+          .prepare(
+            `
+              SELECT id, title, deleted_at
+              FROM memos
+              WHERE project_id = ?
+                AND deleted_at IS NOT NULL
+                ${like ? "AND title LIKE ?" : ""}
+              ORDER BY deleted_at DESC
+            `,
+          )
+          .all(...(like ? [projectId, like] : [projectId]));
+
+        items.push(
+          ...memoRows.map((row) => ({
+            type: "memo",
+            id: row.id,
+            title: row.title,
+            deletedAt: row.deleted_at,
+            meta: null,
+          })),
+        );
+      }
+
+      if (!type || type === "issue") {
+        const issueRows = db
+          .prepare(
+            `
+              SELECT id, title, deleted_at
+              FROM issues
+              WHERE project_id = ?
+                AND deleted_at IS NOT NULL
+                ${like ? "AND title LIKE ?" : ""}
+              ORDER BY deleted_at DESC
+            `,
+          )
+          .all(...(like ? [projectId, like] : [projectId]));
+
+        items.push(
+          ...issueRows.map((row) => ({
+            type: "issue",
+            id: row.id,
+            title: row.title,
+            deletedAt: row.deleted_at,
+            meta: null,
+          })),
+        );
+      }
+
+      if (!type || type === "wiki") {
+        const wikiRoots = db
+          .prepare(
+            `
+              WITH deleted_roots AS (
+                SELECT wp.id
+                FROM wiki_pages wp
+                LEFT JOIN wiki_pages parent ON parent.id = wp.parent_id
+                WHERE wp.project_id = ?
+                  AND wp.deleted_at IS NOT NULL
+                  AND (wp.parent_id IS NULL OR parent.deleted_at IS NULL)
+                  ${like ? "AND wp.title LIKE ?" : ""}
+              ),
+              subtree(root_id, id) AS (
+                SELECT dr.id as root_id, dr.id as id
+                FROM deleted_roots dr
+                UNION ALL
+                SELECT s.root_id, wp.id
+                FROM wiki_pages wp
+                JOIN subtree s ON wp.parent_id = s.id
+              ),
+              counts AS (
+                SELECT root_id, COUNT(*) - 1 AS descendant_count
+                FROM subtree
+                GROUP BY root_id
+              )
+              SELECT wp.id, wp.title, wp.deleted_at, COALESCE(c.descendant_count, 0) AS descendant_count
+              FROM wiki_pages wp
+              JOIN deleted_roots dr ON dr.id = wp.id
+              LEFT JOIN counts c ON c.root_id = wp.id
+              ORDER BY wp.deleted_at DESC
+            `,
+          )
+          .all(...(like ? [projectId, like] : [projectId]));
+
+        items.push(
+          ...wikiRoots.map((row) => ({
+            type: "wiki",
+            id: row.id,
+            title: row.title,
+            deletedAt: row.deleted_at,
+            meta: { descendantCount: row.descendant_count },
+          })),
+        );
+      }
+
+      items.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
+      return ok(items);
+    } catch (error) {
+      return handleDbError(error, "Failed to load trash items");
+    }
+  });
+
+  ipcMain.handle("trash:restore", (_event, input) => {
+    const parsed = parseInput(schemas.trashItem, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+
+    try {
+      const { type, id } = parsed.data;
+      if (type === "memo") {
+        const info = db
+          .prepare("UPDATE memos SET deleted_at = NULL WHERE id = ?")
+          .run(id);
+        if (info.changes === 0) {
+          const exists = db.prepare("SELECT id FROM memos WHERE id = ?").get(id);
+          if (!exists) {
+            return err("NOT_FOUND", "Memo not found");
+          }
+        }
+        return ok({ type, id });
+      }
+
+      if (type === "issue") {
+        const info = db
+          .prepare("UPDATE issues SET deleted_at = NULL WHERE id = ?")
+          .run(id);
+        if (info.changes === 0) {
+          const exists = db
+            .prepare("SELECT id FROM issues WHERE id = ?")
+            .get(id);
+          if (!exists) {
+            return err("NOT_FOUND", "Issue not found");
+          }
+        }
+        return ok({ type, id });
+      }
+
+      const root = db
+        .prepare("SELECT id, deleted_at FROM wiki_pages WHERE id = ?")
+        .get(id);
+      if (!root) {
+        return err("NOT_FOUND", "Wiki page not found");
+      }
+      if (root.deleted_at == null) {
+        return ok({ type, id });
+      }
+
+      const statement = db.prepare(
+        withWikiSubtreeCte(
+          `
+            UPDATE wiki_pages
+            SET deleted_at = NULL
+            WHERE id IN (SELECT id FROM subtree)
+              AND deleted_at = ?
+          `,
+        ),
+      );
+      statement.run(id, root.deleted_at);
+      return ok({ type, id });
+    } catch (error) {
+      return handleDbError(error, "Failed to restore trash item");
+    }
+  });
+
+  ipcMain.handle("trash:deletePermanent", (_event, input) => {
+    const parsed = parseInput(schemas.trashItem, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+
+    try {
+      const { type, id } = parsed.data;
+      if (type === "memo") {
+        const info = db.prepare("DELETE FROM memos WHERE id = ?").run(id);
+        if (info.changes === 0) {
+          return err("NOT_FOUND", "Memo not found");
+        }
+        return ok({ type, id });
+      }
+
+      if (type === "issue") {
+        const info = db.prepare("DELETE FROM issues WHERE id = ?").run(id);
+        if (info.changes === 0) {
+          return err("NOT_FOUND", "Issue not found");
+        }
+        return ok({ type, id });
+      }
+
+      const statement = db.prepare(
+        withWikiSubtreeCte(
+          "DELETE FROM wiki_pages WHERE id IN (SELECT id FROM subtree)",
+        ),
+      );
+      const info = statement.run(id);
+      if (info.changes === 0) {
+        return err("NOT_FOUND", "Wiki page not found");
+      }
+      return ok({ type, id });
+    } catch (error) {
+      return handleDbError(error, "Failed to permanently delete trash item");
+    }
+  });
+
+  ipcMain.handle("trash:emptyExpired", (_event, input) => {
+    const parsed = parseInput(schemas.trashEmptyExpired, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+
+    try {
+      const result = purgeExpiredTrash(db, parsed.data.olderThan);
+      return ok(result);
+    } catch (error) {
+      return handleDbError(error, "Failed to purge expired trash items");
     }
   });
 };

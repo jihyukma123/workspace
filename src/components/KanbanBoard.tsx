@@ -279,7 +279,7 @@ export function KanbanBoard() {
             <AlertDialogTitle
               className={cn("font-mono text-lg font-bold text-primary")}
             >
-              Delete Task
+              Permanently delete this task?
             </AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete{" "}
@@ -303,7 +303,7 @@ export function KanbanBoard() {
                 void handleDeleteConfirm(taskId);
               }}
             >
-              Delete
+              Delete permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

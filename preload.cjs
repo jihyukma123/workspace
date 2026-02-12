@@ -53,4 +53,10 @@ contextBridge.exposeInMainWorld("workspaceApi", {
   feedback: {
     create: (input) => invoke("feedback:create", input),
   },
+  trash: {
+    list: (input) => invoke("trash:list", input),
+    restore: (input) => invoke("trash:restore", input),
+    deletePermanent: (input) => invoke("trash:deletePermanent", input),
+    emptyExpired: (input) => invoke("trash:emptyExpired", input),
+  },
 });

@@ -34,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Issue } from "@/types/workspace";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { ToastAction } from "@/components/ui/toast";
+import { toast } from "@/hooks/use-toast";
 
 const statusLabels: Record<Issue["status"], string> = {
   todo: "Todo",
@@ -63,6 +65,7 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
   const {
     issues,
     selectedProjectId,
+    setSelectedProject,
     deleteIssue,
     updateIssue,
     issueCommentsByIssueId,
@@ -78,6 +81,45 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedIssueId = searchParams.get("issue");
   const [draftComment, setDraftComment] = useState("");
+
+  const handleDeleteIssue = async (issue: Pick<Issue, "id" | "title">) => {
+    const deleted = await deleteIssue(issue.id);
+    if (!deleted) {
+      return;
+    }
+
+    toast({
+      title: "Moved to Trash",
+      description: "This issue can be restored from Trash for 30 days.",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={async () => {
+            const trash = window.workspaceApi?.trash;
+            if (!trash || !selectedProjectId) {
+              return;
+            }
+            const restored = await trash.restore({ type: "issue", id: issue.id });
+            if (restored.ok === false) {
+              toast({
+                title: "Undo failed",
+                description: restored.error.message,
+                variant: "destructive",
+              });
+              return;
+            }
+            await setSelectedProject(selectedProjectId);
+            toast({
+              title: "Restored",
+              description: issue.title ? `"${issue.title}" restored.` : "Issue restored.",
+            });
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const projectIssues = useMemo(
@@ -259,18 +301,17 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                       >
                         <AlertDialogHeader>
                           <AlertDialogTitle>
-                            Delete this issue?
+                            Move this issue to Trash?
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. The issue will be
-                            permanently removed.
+                            You can restore it from Trash for 30 days.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => {
-                              void deleteIssue(selectedIssue.id);
+                              void handleDeleteIssue(selectedIssue);
                               setSearchParams((prev) => {
                                 const next = new URLSearchParams(prev);
                                 next.delete("issue");
@@ -281,7 +322,7 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                               variant: "destructive",
                             })}
                           >
-                            Delete
+                            Move to Trash
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -694,22 +735,21 @@ export function IssuesView({ onAddIssue: _onAddIssue }: IssuesViewProps) {
                         >
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Delete this issue?
+                              Move this issue to Trash?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. The issue will be
-                              permanently removed.
+                              You can restore it from Trash for 30 days.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => void deleteIssue(issue.id)}
+                              onClick={() => void handleDeleteIssue(issue)}
                               className={buttonVariants({
                                 variant: "destructive",
                               })}
                             >
-                              Delete
+                              Move to Trash
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

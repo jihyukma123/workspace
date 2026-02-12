@@ -53,14 +53,14 @@ interface WorkspaceState extends MemoState {
   updateIssue: (
     issueId: string,
     updates: Partial<
-      Pick<Issue, "title" | "description" | "status" | "priority" | "dueDate">
+      Pick<Issue, "title" | "status" | "priority" | "dueDate">
     >,
   ) => Promise<void>;
   updateIssueStatus: (
     issueId: string,
     status: Issue["status"],
   ) => Promise<void>;
-  deleteIssue: (issueId: string) => Promise<void>;
+  deleteIssue: (issueId: string) => Promise<boolean>;
   listIssueComments: (issueId: string) => Promise<IssueComment[]>;
   addIssueComment: (input: {
     issueId: string;
@@ -82,7 +82,7 @@ interface WorkspaceState extends MemoState {
     parentId: string | null,
     position: number,
   ) => Promise<void>;
-  deleteWikiPage: (pageId: string) => Promise<void>;
+  deleteWikiPage: (pageId: string) => Promise<boolean>;
   setSelectedMemoId: (id: string | null) => void;
   addMemo: (memo: Memo) => Promise<Memo | null>;
   updateMemoDraft: (memoId: string, content: string) => void;
@@ -91,7 +91,7 @@ interface WorkspaceState extends MemoState {
     memoId: string,
     snapshot: Pick<Memo, "content" | "updatedAt" | "status">,
   ) => void;
-  deleteMemo: (memoId: string) => Promise<void>;
+  deleteMemo: (memoId: string) => Promise<boolean>;
   addDailyLog: (log: DailyLog) => Promise<DailyLog | null>;
   updateDailyLog: (
     logId: string,
@@ -109,6 +109,7 @@ interface WorkspaceState extends MemoState {
 const mapProject = (record: ProjectRecord): Project => ({
   id: record.id,
   name: record.name,
+  description: null,
   createdAt: new Date(record.createdAt),
 });
 
@@ -549,16 +550,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   deleteIssue: async (issueId) => {
     const api = ensureApi();
     if (!api) {
-      return;
+      return false;
     }
     const result = await api.issues.delete({ id: issueId });
     if (!result.ok) {
       reportError(result, "issues:delete");
-      return;
+      return false;
     }
     set((state) => ({
       issues: state.issues.filter((issue) => issue.id !== issueId),
     }));
+    return true;
   },
 
   listIssueComments: async (issueId) => {
@@ -697,16 +699,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   deleteWikiPage: async (pageId) => {
     const api = ensureApi();
     if (!api) {
-      return;
+      return false;
     }
     const result = await api.wiki.delete({ id: pageId });
     if (!result.ok) {
       reportError(result, "wiki:delete");
-      return;
+      return false;
     }
     set((state) => ({
       wikiPages: state.wikiPages.filter((page) => page.id !== pageId),
     }));
+    return true;
   },
 
   setSelectedMemoId: (id) => set({ selectedMemoId: id }),
@@ -807,12 +810,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       memos: state.memos.map((memo) =>
         memo.id === memoId
           ? {
-              ...memo,
-              content: snapshot.content,
-              title: getMemoTitleFromContent(snapshot.content),
-              updatedAt: snapshot.updatedAt,
-              status: snapshot.status,
-            }
+            ...memo,
+            content: snapshot.content,
+            title: getMemoTitleFromContent(snapshot.content),
+            updatedAt: snapshot.updatedAt,
+            status: snapshot.status,
+          }
           : memo,
       ),
     })),
@@ -820,7 +823,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   deleteMemo: async (memoId) => {
     const api = ensureApi();
     if (!api) {
-      return;
+      return false;
     }
     const state = get();
     const memoToDelete = state.memos.find((memo) => memo.id === memoId);
@@ -843,7 +846,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const result = await api.memos.delete({ id: memoId });
     if (!result.ok) {
       reportError(result, "memos:delete");
-      return;
+      return false;
     }
 
     set((current) => ({
@@ -853,6 +856,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           ? nextSelectedMemoId
           : current.selectedMemoId,
     }));
+    return true;
   },
 
   addDailyLog: async (log) => {

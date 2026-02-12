@@ -3,6 +3,7 @@ import { StickyNote, Save, Clock, Plus, Edit2, X, Trash2 } from "lucide-react";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Textarea } from "@/components/ui/textarea";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { renderMarkdown } from "@/components/markdown/renderMarkdown";
 import { MemoStatus } from "@/types/workspace";
+import { toast } from "@/hooks/use-toast";
 
 type MemoSnapshot = {
   id: string;
@@ -31,6 +33,7 @@ export function MemoEditor() {
     memos,
     selectedMemoId,
     setSelectedMemoId,
+    setSelectedProject,
     addMemo,
     updateMemoDraft,
     saveMemo,
@@ -262,7 +265,46 @@ export function MemoEditor() {
     if (isEditing) {
       handleCancel();
     }
-    await deleteMemo(activeMemo.id);
+    const memoId = activeMemo.id;
+    const memoTitle = activeMemo.title;
+    const projectId = activeMemo.projectId ?? selectedProjectId;
+    const deleted = await deleteMemo(memoId);
+    if (!deleted) {
+      return;
+    }
+
+    toast({
+      title: "Moved to Trash",
+      description: "This memo can be restored from Trash for 30 days.",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={async () => {
+            const trash = window.workspaceApi?.trash;
+            if (!trash || !projectId) {
+              return;
+            }
+            const restored = await trash.restore({ type: "memo", id: memoId });
+            if (restored.ok === false) {
+              toast({
+                title: "Undo failed",
+                description: restored.error.message,
+                variant: "destructive",
+              });
+              return;
+            }
+            await setSelectedProject(projectId);
+            setSelectedMemoId(memoId);
+            toast({
+              title: "Restored",
+              description: memoTitle ? `"${memoTitle}" restored.` : "Memo restored.",
+            });
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   return (
@@ -403,11 +445,12 @@ export function MemoEditor() {
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="destructive"
-                      size="sm"
+                      size="icon"
+                      aria-label="Move memo to Trash"
+                      title="Move to Trash"
                       disabled={!activeMemo}
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent
@@ -415,10 +458,11 @@ export function MemoEditor() {
                     className="bg-popover border-border"
                   >
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete this memo?</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        Move this memo to Trash?
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. The memo will be
-                        permanently removed.
+                        You can restore it from Trash for 30 days.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -427,7 +471,7 @@ export function MemoEditor() {
                         onClick={handleDelete}
                         className={buttonVariants({ variant: "destructive" })}
                       >
-                        Delete
+                        Move to Trash
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

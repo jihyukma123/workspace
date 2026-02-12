@@ -17,6 +17,7 @@ import { useWorkspaceStore } from "@/store/workspaceStore";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { ToastAction } from "@/components/ui/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -270,6 +271,7 @@ export function WikiEditor() {
   const {
     selectedProjectId,
     wikiPages,
+    setSelectedProject,
     addWikiPage,
     updateWikiPage,
     moveWikiPage,
@@ -507,14 +509,52 @@ export function WikiEditor() {
     }
   };
 
-  const handleDelete = (pageId: string) => {
-    void deleteWikiPage(pageId);
+  const handleDelete = async (pageId: string) => {
+    const page = projectPages.find((p) => p.id === pageId);
+    const deleted = await deleteWikiPage(pageId);
+    if (!deleted) {
+      return;
+    }
+
     setSelectedPageId((current) => {
       if (current !== pageId) return current;
-      const remaining = projectPages.filter((page) => page.id !== pageId);
+      const remaining = projectPages.filter((p) => p.id !== pageId);
       return remaining[0]?.id ?? null;
     });
     setIsEditing(false);
+
+    toast({
+      title: "Moved to Trash",
+      description: "This page and its subpages can be restored from Trash for 30 days.",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={async () => {
+            const trash = window.workspaceApi?.trash;
+            if (!trash || !selectedProjectId) {
+              return;
+            }
+            const restored = await trash.restore({ type: "wiki", id: pageId });
+            if (restored.ok === false) {
+              toast({
+                title: "Undo failed",
+                description: restored.error.message,
+                variant: "destructive",
+              });
+              return;
+            }
+            await setSelectedProject(selectedProjectId);
+            setSelectedPageId(pageId);
+            toast({
+              title: "Restored",
+              description: page?.title ? `"${page.title}" restored.` : "Wiki page restored.",
+            });
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   // Drag and Drop handlers
@@ -799,9 +839,13 @@ export function WikiEditor() {
                         onOpenChange={setIsDeleteDialogOpen}
                       >
                         <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            aria-label="Move wiki page to Trash"
+                            title="Move to Trash"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent
@@ -810,11 +854,11 @@ export function WikiEditor() {
                         >
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Delete this page?
+                              Move this page to Trash?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. The wiki page will
-                              be permanently removed.
+                              This page and its subpages can be restored from
+                              Trash for 30 days.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -825,7 +869,7 @@ export function WikiEditor() {
                                 variant: "destructive",
                               })}
                             >
-                              Delete
+                              Move to Trash
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

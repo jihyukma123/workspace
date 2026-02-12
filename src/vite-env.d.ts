@@ -11,6 +11,10 @@ import type {
   DailyLogRecord,
   ReminderRecord,
   FeedbackRecord,
+  TrashListInput,
+  TrashItemRecord,
+  TrashActionInput,
+  TrashPurgeResult,
 } from "@/types/ipc";
 
 declare global {
@@ -21,7 +25,7 @@ declare global {
         create: (input: ProjectRecord) => Promise<Result<ProjectRecord>>;
         update: (input: {
           id: string;
-          updates: Partial<Pick<ProjectRecord, "name" | "description">>;
+          updates: Partial<Pick<ProjectRecord, "name">>;
         }) => Promise<Result<ProjectRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
       };
@@ -31,18 +35,18 @@ declare global {
           id: string;
           projectId: string;
           title: string;
-          description: string;
           status: TaskRecord["status"];
           priority: TaskRecord["priority"];
           createdAt: number;
           position?: number | null;
+          dueDate?: number | null;
         }) => Promise<Result<TaskRecord>>;
         update: (input: {
           id: string;
           updates: Partial<
             Pick<
               TaskRecord,
-              "title" | "description" | "status" | "priority" | "position"
+              "title" | "status" | "priority" | "position" | "dueDate"
             >
           >;
         }) => Promise<Result<TaskRecord>>;
@@ -54,7 +58,7 @@ declare global {
         update: (input: {
           id: string;
           updates: Partial<
-            Pick<IssueRecord, "title" | "description" | "status" | "priority">
+            Pick<IssueRecord, "title" | "status" | "priority" | "dueDate">
           >;
         }) => Promise<Result<IssueRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
@@ -118,13 +122,23 @@ declare global {
         update: (input: {
           id: string;
           updates: Partial<
-            Pick<ReminderRecord, "text" | "status" | "updatedAt">
+            Pick<ReminderRecord, "text" | "status" | "updatedAt" | "remindAt" | "notified">
           >;
         }) => Promise<Result<ReminderRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
       };
       feedback: {
         create: (input: FeedbackRecord) => Promise<Result<FeedbackRecord>>;
+      };
+      trash: {
+        list: (input: TrashListInput) => Promise<Result<TrashItemRecord[]>>;
+        restore: (input: TrashActionInput) => Promise<Result<TrashActionInput>>;
+        deletePermanent: (
+          input: TrashActionInput,
+        ) => Promise<Result<TrashActionInput>>;
+        emptyExpired: (input: {
+          olderThan: number;
+        }) => Promise<Result<TrashPurgeResult>>;
       };
     };
   }

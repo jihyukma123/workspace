@@ -5,6 +5,7 @@ import {
   StickyNote, 
   AlertCircle, 
   CalendarDays,
+  Trash2,
   ChevronDown,
   FolderKanban,
   Check,
@@ -39,6 +40,7 @@ const menuItems = [
   { id: "memo", label: "Memo", icon: StickyNote, path: "/memo" },
   { id: "issues", label: "Issues", icon: AlertCircle, path: "/issues" },
   { id: "calendar", label: "Calendar", icon: CalendarDays, path: "/calendar" },
+  { id: "trash", label: "Trash", icon: Trash2, path: "/trash" },
 ];
 
 const getProjectColor = (index: number) => {
@@ -118,7 +120,7 @@ export function AppSidebar() {
         body: trimmed,
         createdAt: Date.now(),
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         setFeedbackError(result.error.message || "Failed to save feedback.");
         return;
       }

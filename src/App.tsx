@@ -6,6 +6,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProjectManagement from "./pages/ProjectManagement";
+import Trash from "./pages/Trash";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/memo" element={<Index />} />
           <Route path="/issues" element={<Index />} />
           <Route path="/calendar" element={<Index />} />
+          <Route path="/trash" element={<Trash />} />
           <Route path="/projects" element={<ProjectManagement />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

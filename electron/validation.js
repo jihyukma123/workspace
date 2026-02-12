@@ -4,6 +4,7 @@ const idSchema = z.string().min(1);
 const timestampSchema = z.number().int().nonnegative();
 const dateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const issueIdSchema = z.object({ issueId: idSchema });
+const trashTypeSchema = z.enum(["wiki", "memo", "issue"]);
 
 export const schemas = {
   feedbackCreate: z.object({
@@ -180,6 +181,19 @@ export const schemas = {
       }),
   }),
   reminderDelete: z.object({ id: idSchema }),
+
+  trashList: z.object({
+    projectId: idSchema,
+    type: trashTypeSchema.optional(),
+    query: z.string().trim().max(200).optional(),
+  }),
+  trashItem: z.object({
+    type: trashTypeSchema,
+    id: idSchema,
+  }),
+  trashEmptyExpired: z.object({
+    olderThan: timestampSchema,
+  }),
 };
 
 export const parseInput = (schema, input) => {

@@ -209,4 +209,17 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_issues_due_date ON issues(due_date);
     `,
   },
+  {
+    id: 9,
+    name: "trash_soft_delete",
+    up: `
+      ALTER TABLE memos ADD COLUMN deleted_at INTEGER;
+      ALTER TABLE issues ADD COLUMN deleted_at INTEGER;
+      ALTER TABLE wiki_pages ADD COLUMN deleted_at INTEGER;
+
+      CREATE INDEX IF NOT EXISTS idx_memos_project_deleted ON memos(project_id, deleted_at);
+      CREATE INDEX IF NOT EXISTS idx_issues_project_deleted ON issues(project_id, deleted_at);
+      CREATE INDEX IF NOT EXISTS idx_wiki_project_deleted ON wiki_pages(project_id, deleted_at);
+    `,
+  },
 ];

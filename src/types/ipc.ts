@@ -84,3 +84,30 @@ export type FeedbackRecord = {
   body: string;
   createdAt: number;
 };
+
+export type TrashItemType = "wiki" | "memo" | "issue";
+
+export type TrashListInput = {
+  projectId: string;
+  type?: TrashItemType;
+  query?: string;
+};
+
+export type TrashItemRecord = {
+  type: TrashItemType;
+  id: string;
+  title: string;
+  deletedAt: number;
+  meta: { descendantCount: number } | null;
+};
+
+export type TrashActionInput = {
+  type: TrashItemType;
+  id: string;
+};
+
+export type TrashPurgeResult = {
+  memoDeleted: number;
+  issueDeleted: number;
+  wikiDeleted: number;
+};

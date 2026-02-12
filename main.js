@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, Notification } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { backupDatabaseFiles, openDatabase } from "./electron/db.js";
-import { registerIpcHandlers } from "./electron/ipc.js";
+import { purgeExpiredTrash, registerIpcHandlers } from "./electron/ipc.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +13,10 @@ const VITE_DEV_SERVER_URL = "http://localhost:8080";
 let db = null;
 let dbPath = null;
 let reminderCheckInterval = null;
+let trashPurgeInterval = null;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const TRASH_RETENTION_MS = 30 * DAY_MS;
 
 function checkDueReminders() {
   if (!db) return;
@@ -65,6 +69,27 @@ function stopReminderChecker() {
   }
 }
 
+function purgeExpiredTrashItems() {
+  if (!db) return;
+  try {
+    purgeExpiredTrash(db, Date.now() - TRASH_RETENTION_MS);
+  } catch (error) {
+    console.warn("[trash] Purge failed", error);
+  }
+}
+
+function startTrashPurge() {
+  purgeExpiredTrashItems();
+  trashPurgeInterval = setInterval(purgeExpiredTrashItems, DAY_MS);
+}
+
+function stopTrashPurge() {
+  if (trashPurgeInterval) {
+    clearInterval(trashPurgeInterval);
+    trashPurgeInterval = null;
+  }
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -94,6 +119,7 @@ app.whenReady().then(() => {
   registerIpcHandlers(ipcMain, db);
   createWindow();
   startReminderChecker();
+  startTrashPurge();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -110,6 +136,7 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   stopReminderChecker();
+  stopTrashPurge();
   if (db) {
     db.close();
     db = null;

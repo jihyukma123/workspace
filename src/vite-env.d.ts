@@ -11,6 +11,7 @@ import type {
   DailyLogRecord,
   ReminderRecord,
   FeedbackRecord,
+  FeedbackListInput,
   TrashListInput,
   TrashItemRecord,
   TrashActionInput,
@@ -130,6 +131,7 @@ declare global {
       };
       feedback: {
         create: (input: FeedbackRecord) => Promise<Result<FeedbackRecord>>;
+        list: (input?: FeedbackListInput) => Promise<Result<FeedbackRecord[]>>;
       };
       trash: {
         list: (input: TrashListInput) => Promise<Result<TrashItemRecord[]>>;

@@ -86,6 +86,10 @@ export type FeedbackRecord = {
   createdAt: number;
 };
 
+export type FeedbackListInput = {
+  limit?: number;
+};
+
 export type TrashItemType = "wiki" | "memo" | "issue";
 
 export type TrashListInput = {

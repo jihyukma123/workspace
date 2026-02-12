@@ -703,6 +703,22 @@ export const registerIpcHandlers = (ipcMain, db) => {
     }
   });
 
+  ipcMain.handle("feedback:list", (_event, input) => {
+    const parsed = parseInput(schemas.feedbackList, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const limit = parsed.data?.limit ?? 200;
+      const rows = db
+        .prepare("SELECT * FROM feedback ORDER BY created_at DESC LIMIT ?")
+        .all(limit);
+      return ok(rows.map(mapFeedback));
+    } catch (error) {
+      return handleDbError(error, "Failed to load feedback");
+    }
+  });
+
   ipcMain.handle("memos:update", (_event, input) => {
     const parsed = parseInput(schemas.memoUpdate, input);
     if (!parsed.ok) {

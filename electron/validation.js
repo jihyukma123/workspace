@@ -12,6 +12,11 @@ export const schemas = {
     body: z.string().trim().min(1).max(1000),
     createdAt: timestampSchema,
   }),
+  feedbackList: z
+    .object({
+      limit: z.number().int().min(1).max(500).optional(),
+    })
+    .optional(),
   projectCreate: z.object({
     id: idSchema,
     name: z.string().min(1),

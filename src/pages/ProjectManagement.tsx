@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { cn } from "@/lib/utils";
@@ -21,11 +21,12 @@ import {
 } from "@/components/ui/dialog";
 import { AppInput } from "@/components/ui/app-input";
 import { Project } from "@/types/workspace";
-import { PrimaryColorSetting } from "@/components/settings/PrimaryColorSetting";
+import { useNavigate } from "react-router-dom";
 
 const DELETE_PASSWORD = "86748";
 
 export default function ProjectManagement() {
+  const navigate = useNavigate();
   const { projects, deleteProject, hydrate, isHydrated } = useWorkspaceStore();
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [password, setPassword] = useState("");
@@ -62,31 +63,29 @@ export default function ProjectManagement() {
     <MainLayout>
       <div className={cn("h-screen flex flex-col")}>
         <header className={cn("flex items-center justify-between px-6 py-4 border-b border-border bg-background")}>
-          <div>
-            <h1 className={cn("font-mono text-lg font-bold text-primary")}>Project Management</h1>
+          <div className={cn("flex items-start gap-3")}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn("mt-0.5")}
+              onClick={() => navigate("/settings")}
+            >
+              <ArrowLeft className={cn("w-4 h-4 mr-2")} />
+              Settings
+            </Button>
+            <div>
+              <h1 className={cn("font-mono text-lg font-bold text-primary")}>Projects</h1>
             <p className={cn("text-sm text-muted-foreground")}>
               Manage projects and permanently remove unused workspaces.
             </p>
+            </div>
           </div>
         </header>
 
         <div className={cn("flex-1 min-h-0 p-6")}>
           <div className={cn("h-full flex flex-col gap-4")}>
-            <Card className={cn("flex-shrink-0")}>
-              <CardHeader className={cn("pb-4")}>
-                <CardTitle className={cn("font-mono text-lg font-bold text-primary")}>
-                  Appearance
-                </CardTitle>
-                <CardDescription>
-                  Customize the app’s primary color.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PrimaryColorSetting />
-              </CardContent>
-            </Card>
-
-            <Card className={cn("flex-1 min-h-0 flex flex-col")}>
+            <Card className={cn("flex-1 min-h-0 flex flex-col max-w-3xl")}>
               <CardHeader className={cn("pb-4")}>
                 <CardTitle className={cn("font-mono text-lg font-bold text-primary")}>
                   Project List

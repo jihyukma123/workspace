@@ -175,7 +175,7 @@ export function AppSidebar() {
                 "h-6 w-6 text-sidebar-muted transition-all duration-200",
                 "hover:text-sidebar-foreground hover:bg-sidebar-accent"
               )}
-              onClick={() => navigate("/projects")}
+              onClick={() => navigate("/settings")}
             >
               <Settings className={cn("h-4 w-4")} />
             </Button>

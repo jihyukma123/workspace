@@ -157,10 +157,8 @@ function WikiTreeItem({
     <div>
       <div
         className={cn(
-          "group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-all duration-200",
-          isSelected
-            ? "bg-accent/20 border border-primary"
-            : "hover:bg-accent/30 border border-transparent",
+          "group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-all duration-200 border border-transparent",
+          isSelected ? "hover:bg-transparent" : "hover:bg-accent/30",
           isDragOver &&
             dropPosition === "before" &&
             "border-t-2 border-t-primary",
@@ -199,11 +197,23 @@ function WikiTreeItem({
           <span className="w-4" />
         )}
 
-        <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-        <span className="truncate text-sm flex-1">{node.title}</span>
+        <FileText
+          className={cn(
+            "w-4 h-4 shrink-0",
+            isSelected ? "text-foreground/70" : "text-muted-foreground",
+          )}
+        />
+        <span
+          className={cn(
+            "truncate text-sm flex-1",
+            isSelected ? "text-foreground font-semibold" : "text-foreground/80",
+          )}
+        >
+          {node.title}
+        </span>
 
         {isSelected && (
-          <ChevronRight className="w-4 h-4 text-primary shrink-0" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
         )}
       </div>
 

@@ -35,6 +35,7 @@ declare global {
           id: string;
           projectId: string;
           title: string;
+          details?: string | null;
           status: TaskRecord["status"];
           priority: TaskRecord["priority"];
           createdAt: number;
@@ -46,7 +47,7 @@ declare global {
           updates: Partial<
             Pick<
               TaskRecord,
-              "title" | "status" | "priority" | "position" | "dueDate"
+              "title" | "details" | "status" | "priority" | "position" | "dueDate"
             >
           >;
         }) => Promise<Result<TaskRecord>>;

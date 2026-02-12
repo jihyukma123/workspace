@@ -45,7 +45,7 @@ interface WorkspaceState extends MemoState {
   addTask: (task: Task) => Promise<Task | null>;
   updateTask: (
     taskId: string,
-    updates: Partial<Pick<Task, "title" | "priority" | "dueDate">>,
+    updates: Partial<Pick<Task, "title" | "details" | "priority" | "dueDate">>,
   ) => Promise<void>;
   updateTaskStatus: (taskId: string, status: Task["status"]) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -117,6 +117,7 @@ const mapTask = (record: TaskRecord): Task => ({
   id: record.id,
   projectId: record.projectId,
   title: record.title,
+  details: record.details ?? null,
   status: record.status,
   priority: record.priority,
   createdAt: new Date(record.createdAt),
@@ -414,6 +415,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id: task.id,
       projectId: task.projectId,
       title: task.title,
+      details: task.details ?? null,
       status: task.status,
       priority: task.priority,
       createdAt: task.createdAt.getTime(),
@@ -437,6 +439,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
     const apiUpdates = {
       ...updates,
+      details:
+        updates.details !== undefined
+          ? updates.details?.trim()
+            ? updates.details.trim()
+            : null
+          : undefined,
       dueDate:
         updates.dueDate !== undefined
           ? updates.dueDate

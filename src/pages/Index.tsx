@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AppInput } from "@/components/ui/app-input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +47,7 @@ const Index = () => {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: "",
+    details: "",
     priority: "medium" as Task["priority"],
   });
   const [isTaskSubmitting, setIsTaskSubmitting] = useState(false);
@@ -101,12 +104,13 @@ const Index = () => {
         id: Date.now().toString(),
         projectId: selectedProjectId,
         title: newTask.title,
+        details: newTask.details.trim() ? newTask.details.trim() : null,
         status: "backlog",
         priority: newTask.priority,
         createdAt: new Date(),
       });
       if (created) {
-        setNewTask({ title: "", priority: "medium" });
+        setNewTask({ title: "", details: "", priority: "medium" });
         setIsTaskDialogOpen(false);
       }
     } finally {
@@ -252,6 +256,9 @@ const Index = () => {
                         if (e.defaultPrevented) {
                           return;
                         }
+                        if (e.target instanceof HTMLTextAreaElement) {
+                          return;
+                        }
                         if (e.key === "Enter" && !e.shiftKey) {
                           if (isTaskSubmitting) {
                             return;
@@ -281,6 +288,21 @@ const Index = () => {
                             }
                           }}
                         />
+                        <div className="space-y-2">
+                          <Label htmlFor="new-task-details">Details</Label>
+                          <Textarea
+                            id="new-task-details"
+                            value={newTask.details}
+                            onChange={(e) =>
+                              setNewTask({
+                                ...newTask,
+                                details: e.target.value,
+                              })
+                            }
+                            placeholder="Write any extra context, steps, or notes…"
+                            className={cn("min-h-[120px] resize-none")}
+                          />
+                        </div>
                         <Select
                           value={newTask.priority}
                           onValueChange={(value: Task["priority"]) =>

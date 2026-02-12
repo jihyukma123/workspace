@@ -222,4 +222,11 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_wiki_project_deleted ON wiki_pages(project_id, deleted_at);
     `,
   },
+  {
+    id: 10,
+    name: "task_details",
+    up: `
+      ALTER TABLE tasks ADD COLUMN details TEXT;
+    `,
+  },
 ];

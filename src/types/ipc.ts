@@ -12,6 +12,7 @@ export type TaskRecord = {
   id: string;
   projectId: string;
   title: string;
+  details: string | null;
   status: "backlog" | "in-progress" | "done";
   priority: "low" | "medium" | "high";
   createdAt: number;

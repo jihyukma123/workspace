@@ -35,6 +35,7 @@ export const schemas = {
     id: idSchema,
     projectId: idSchema,
     title: z.string().min(1),
+    details: z.string().max(20000).nullable().optional(),
     status: z.enum(["backlog", "in-progress", "done"]),
     priority: z.enum(["low", "medium", "high"]),
     createdAt: timestampSchema,
@@ -46,6 +47,7 @@ export const schemas = {
     updates: z
       .object({
         title: z.string().min(1).optional(),
+        details: z.string().max(20000).nullable().optional(),
         status: z.enum(["backlog", "in-progress", "done"]).optional(),
         priority: z.enum(["low", "medium", "high"]).optional(),
         position: z.number().int().optional().nullable(),

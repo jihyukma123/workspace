@@ -11,6 +11,7 @@ const mapTask = (row) => ({
   id: row.id,
   projectId: row.project_id,
   title: row.title,
+  details: row.details ?? null,
   status: row.status,
   priority: row.priority,
   createdAt: row.created_at,
@@ -249,12 +250,13 @@ export const registerIpcHandlers = (ipcMain, db) => {
       const payload = parsed.data;
       db.prepare(
         `INSERT INTO tasks
-          (id, project_id, title, status, priority, created_at, position, due_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, project_id, title, details, status, priority, created_at, position, due_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
         payload.title,
+        payload.details ?? null,
         payload.status,
         payload.priority,
         payload.createdAt,
@@ -282,6 +284,10 @@ export const registerIpcHandlers = (ipcMain, db) => {
       if (updates.title !== undefined) {
         fields.push("title = ?");
         values.push(updates.title);
+      }
+      if (updates.details !== undefined) {
+        fields.push("details = ?");
+        values.push(updates.details);
       }
       if (updates.status !== undefined) {
         fields.push("status = ?");

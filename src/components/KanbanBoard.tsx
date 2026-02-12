@@ -5,16 +5,16 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
-  Pencil,
   CalendarDays,
+  MoreHorizontal,
 } from "lucide-react";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Task, KanbanColumn } from "@/types/workspace";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +40,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AppInput } from "@/components/ui/app-input";
 
 const columns: KanbanColumn[] = [
   { id: "backlog", title: "Backlog", color: "secondary" },
@@ -64,12 +71,41 @@ export function KanbanBoard() {
     useWorkspaceStore();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [taskToView, setTaskToView] = useState<Task | null>(null);
+  const [isDetailsSaving, setIsDetailsSaving] = useState(false);
+  const [viewForm, setViewForm] = useState({
     title: "",
+    details: "",
     priority: "medium" as Task["priority"],
     dueDate: "" as string,
   });
+
+  const closeDetailsDialog = () => {
+    setTaskToView(null);
+    setViewForm({
+      title: "",
+      details: "",
+      priority: "medium",
+      dueDate: "",
+    });
+  };
+
+  const getDueDateKey = (date: Date | null | undefined) =>
+    date ? date.toISOString().split("T")[0] : "";
+  const initialView = taskToView
+    ? {
+        title: taskToView.title,
+        details: taskToView.details ?? "",
+        priority: taskToView.priority,
+        dueDate: getDueDateKey(taskToView.dueDate),
+      }
+    : null;
+  const isDetailsDirty = initialView
+    ? viewForm.title !== initialView.title ||
+      viewForm.details !== initialView.details ||
+      viewForm.priority !== initialView.priority ||
+      viewForm.dueDate !== initialView.dueDate
+    : false;
 
   const handleDragStart = (taskId: string) => {
     setDraggedTask(taskId);
@@ -125,23 +161,48 @@ export function KanbanBoard() {
     setTaskToDelete(null);
   };
 
-  const openEditDialog = (task: Task) => {
-    setEditForm({
-      title: task.title,
-      priority: task.priority,
-      dueDate: task.dueDate ? task.dueDate.toISOString().split("T")[0] : "",
-    });
-    setTaskToEdit(task);
-  };
-
-  const handleEditSubmit = async () => {
-    if (!taskToEdit || !editForm.title.trim()) return;
-    await updateTask(taskToEdit.id, {
-      title: editForm.title.trim(),
-      priority: editForm.priority,
-      dueDate: editForm.dueDate ? new Date(editForm.dueDate) : null,
-    });
-    setTaskToEdit(null);
+  const handleSaveDetails = async () => {
+    if (!taskToView) {
+      return;
+    }
+    if (isDetailsSaving) {
+      return;
+    }
+    const taskId = taskToView.id;
+    const nextTitle = viewForm.title.trim();
+    if (!nextTitle) {
+      return;
+    }
+    setIsDetailsSaving(true);
+    try {
+      await updateTask(taskId, {
+        title: nextTitle,
+        details: viewForm.details,
+        priority: viewForm.priority,
+        dueDate: viewForm.dueDate ? new Date(viewForm.dueDate) : null,
+      });
+      const normalizedDetails = viewForm.details.trim()
+        ? viewForm.details.trim()
+        : null;
+      setTaskToView((prev) =>
+        prev && prev.id === taskId
+          ? {
+              ...prev,
+              title: nextTitle,
+              details: normalizedDetails,
+              priority: viewForm.priority,
+              dueDate: viewForm.dueDate ? new Date(viewForm.dueDate) : null,
+            }
+          : prev,
+      );
+      setViewForm((prev) => ({
+        ...prev,
+        title: nextTitle,
+        details: normalizedDetails ?? "",
+      }));
+    } finally {
+      setIsDetailsSaving(false);
+    }
   };
 
   return (
@@ -229,32 +290,48 @@ export function KanbanBoard() {
                           </div>
                         </div>
                         <div className="flex flex-col gap-1">
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onPointerDown={(event) => event.stopPropagation()}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              openEditDialog(task);
-                            }}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onPointerDown={(event) => event.stopPropagation()}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              setTaskToDelete(task);
-                            }}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                }}
+                                aria-label="Open task actions"
+                                title="Actions"
+                              >
+                                <MoreHorizontal className="w-3 h-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onSelect={(event) => {
+                                  setTaskToView(task);
+                                  setViewForm({
+                                    title: task.title,
+                                    details: task.details ?? "",
+                                    priority: task.priority,
+                                    dueDate: getDueDateKey(task.dueDate),
+                                  });
+                                }}
+                              >
+                                Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className={cn("text-destructive focus:text-destructive")}
+                                onSelect={(event) => {
+                                  setTaskToDelete(task);
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>
@@ -310,45 +387,71 @@ export function KanbanBoard() {
       </AlertDialog>
 
       <Dialog
-        open={!!taskToEdit}
+        open={!!taskToView}
         onOpenChange={(open) => {
           if (!open) {
-            setTaskToEdit(null);
+            closeDetailsDialog();
           }
         }}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
-            <DialogTitle
-              className={cn("font-mono text-lg font-bold text-primary")}
-            >
-              Edit Task
+            <DialogTitle className={cn("font-mono text-lg font-bold text-primary")}>
+              Task Details
             </DialogTitle>
-            <DialogDescription>
-              Modify the task details below.
+            <DialogDescription className={cn("text-foreground font-medium")}>
+              Update details and priority.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+
+          <div className="flex flex-wrap gap-2">
+            <span
+              className={cn(
+                "text-xs px-2 py-0.5 rounded-full",
+                priorityColors[viewForm.priority],
+              )}
+            >
+              {viewForm.priority}
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              {taskToView?.status ?? "—"}
+            </span>
+            {taskToView?.dueDate && (
+              <span
+                className={cn(
+                  "text-xs px-2 py-0.5 rounded-full flex items-center gap-1",
+                  taskToView.dueDate < new Date() && taskToView.status !== "done"
+                    ? "bg-destructive/20 text-destructive"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                <CalendarDays className="w-3 h-3" />
+                <RelativeTime date={taskToView.dueDate} shortFormat />
+              </span>
+            )}
+          </div>
+
+          <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-title">Title</Label>
-              <Input
-                id="edit-title"
-                value={editForm.title}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, title: e.target.value })
+              <Label htmlFor="task-view-title">Title</Label>
+              <AppInput
+                id="task-view-title"
+                value={viewForm.title}
+                onChange={(event) =>
+                  setViewForm((prev) => ({ ...prev, title: event.target.value }))
                 }
                 placeholder="Task title"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-priority">Priority</Label>
+              <Label htmlFor="task-view-priority">Priority</Label>
               <Select
-                value={editForm.priority}
+                value={viewForm.priority}
                 onValueChange={(value: Task["priority"]) =>
-                  setEditForm({ ...editForm, priority: value })
+                  setViewForm((prev) => ({ ...prev, priority: value }))
                 }
               >
-                <SelectTrigger id="edit-priority">
+                <SelectTrigger id="task-view-priority">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -359,26 +462,42 @@ export function KanbanBoard() {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-dueDate">Due Date (optional)</Label>
-              <Input
-                id="edit-dueDate"
+              <Label htmlFor="task-view-dueDate">Due Date (optional)</Label>
+              <AppInput
+                id="task-view-dueDate"
                 type="date"
-                value={editForm.dueDate}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, dueDate: e.target.value })
+                value={viewForm.dueDate}
+                onChange={(event) =>
+                  setViewForm((prev) => ({ ...prev, dueDate: event.target.value }))
                 }
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="task-view-details">Details</Label>
+              <Textarea
+                id="task-view-details"
+                value={viewForm.details}
+                onChange={(event) =>
+                  setViewForm((prev) => ({ ...prev, details: event.target.value }))
+                }
+                placeholder="Write any extra context, steps, or notes…"
+                className={cn("min-h-[220px] resize-none")}
+              />
+              <p className="text-xs text-muted-foreground">
+                칸반 카드에는 표시되지 않지만, 여기에 상세 내용을 저장할 수 있어요.
+              </p>
+            </div>
           </div>
+
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setTaskToEdit(null)}>
-              Cancel
+            <Button variant="secondary" onClick={closeDetailsDialog}>
+              Close
             </Button>
             <Button
-              onClick={() => void handleEditSubmit()}
-              disabled={!editForm.title.trim()}
+              onClick={() => void handleSaveDetails()}
+              disabled={!viewForm.title.trim() || !isDetailsDirty || isDetailsSaving}
             >
-              Save Changes
+              {isDetailsSaving ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

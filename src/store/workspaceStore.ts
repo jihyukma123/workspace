@@ -77,6 +77,14 @@ interface WorkspaceState extends MemoState {
       Pick<WikiPage, "title" | "content" | "parentId" | "position">
     >,
   ) => Promise<void>;
+  updateWikiDraft: (
+    pageId: string,
+    updates: Partial<Pick<WikiPage, "title" | "content">>,
+  ) => void;
+  saveWikiPage: (
+    pageId: string,
+    updates: Pick<WikiPage, "title" | "content">,
+  ) => Promise<void>;
   moveWikiPage: (
     pageId: string,
     parentId: string | null,
@@ -154,6 +162,7 @@ const mapWikiPage = (record: WikiPageRecord): WikiPage => ({
   createdAt: new Date(record.createdAt),
   updatedAt: new Date(record.updatedAt),
   position: record.position,
+  status: "saved",
 });
 
 const mapMemo = (record: MemoRecord): Memo => ({
@@ -683,6 +692,77 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }));
   },
 
+  updateWikiDraft: (pageId, updates) =>
+    set((state) => ({
+      wikiPages: state.wikiPages.map((page) => {
+        if (page.id !== pageId) {
+          return page;
+        }
+        const nextTitle = updates.title ?? page.title;
+        const nextContent = updates.content ?? page.content;
+        if (nextTitle === page.title && nextContent === page.content) {
+          return page;
+        }
+        return {
+          ...page,
+          title: nextTitle,
+          content: nextContent,
+          status: "unsaved",
+        };
+      }),
+    })),
+
+  saveWikiPage: async (pageId, updates) => {
+    const api = ensureApi();
+    if (!api) {
+      return;
+    }
+    const title = updates.title.trim();
+    const content = updates.content;
+    set((state) => ({
+      wikiPages: state.wikiPages.map((page) =>
+        page.id === pageId ? { ...page, status: "saving" } : page,
+      ),
+    }));
+
+    const result = await api.wiki.update({
+      id: pageId,
+      updates: { title, content },
+    });
+
+    if (!result.ok) {
+      reportError(result, "wiki:update");
+      set((state) => ({
+        wikiPages: state.wikiPages.map((page) =>
+          page.id === pageId ? { ...page, status: "unsaved" } : page,
+        ),
+      }));
+      return;
+    }
+
+    const updated = mapWikiPage(result.data);
+    set((state) => ({
+      wikiPages: state.wikiPages.map((page) => {
+        if (page.id !== pageId) {
+          return page;
+        }
+        // Keep it dirty if edits changed while this save request was in flight.
+        const titleMatches = page.title.trim() === title;
+        const contentMatches = page.content === content;
+        if (!titleMatches || !contentMatches) {
+          return { ...page, status: "unsaved" };
+        }
+        return {
+          ...page,
+          title: updated.title,
+          content: updated.content,
+          updatedAt: updated.updatedAt,
+          status: "saved",
+        };
+      }),
+    }));
+  },
+
   moveWikiPage: async (pageId, parentId, position) => {
     const api = ensureApi();
     if (!api) {
@@ -698,9 +778,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
     const updated = mapWikiPage(result.data);
     set((state) => ({
-      wikiPages: state.wikiPages.map((page) =>
-        page.id === pageId ? updated : page,
-      ),
+      wikiPages: state.wikiPages.map((page) => {
+        if (page.id !== pageId) {
+          return page;
+        }
+        if (page.status !== "saved") {
+          return {
+            ...page,
+            parentId: updated.parentId,
+            position: updated.position,
+            updatedAt: updated.updatedAt,
+          };
+        }
+        return updated;
+      }),
     }));
   },
 

@@ -283,7 +283,8 @@ export function WikiEditor() {
     wikiPages,
     setSelectedProject,
     addWikiPage,
-    updateWikiPage,
+    updateWikiDraft,
+    saveWikiPage,
     moveWikiPage,
     deleteWikiPage,
   } = useWorkspaceStore();
@@ -300,8 +301,6 @@ export function WikiEditor() {
   );
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState("");
-  const [editTitle, setEditTitle] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState("");
@@ -405,6 +404,24 @@ export function WikiEditor() {
     }
   }, [projectPages, selectedPageId]);
 
+  // Auto-save after 2 seconds of inactivity while editing
+  useEffect(() => {
+    if (!selectedPage || !isEditing || selectedPage.status !== "unsaved") {
+      return;
+    }
+    const trimmedTitle = selectedPage.title.trim();
+    if (!trimmedTitle) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      void saveWikiPage(selectedPage.id, {
+        title: trimmedTitle,
+        content: selectedPage.content,
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isEditing, saveWikiPage, selectedPage]);
+
   const handleToggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -418,18 +435,15 @@ export function WikiEditor() {
   }, []);
 
   const handleEdit = () => {
-    if (selectedPage) {
-      setEditContent(selectedPage.content);
-      setEditTitle(selectedPage.title);
-      setIsEditing(true);
-    }
+    if (!selectedPage) return;
+    setIsEditing(true);
   };
 
   const handleSave = async () => {
-    if (!selectedPageId) return;
+    if (!selectedPage) return;
     if (pageSaveLock.current) return;
 
-    const trimmedTitle = editTitle.trim();
+    const trimmedTitle = selectedPage.title.trim();
     if (!trimmedTitle) {
       toast({
         title: "Page title required",
@@ -442,9 +456,9 @@ export function WikiEditor() {
     setIsPageSaving(true);
     setIsEditing(false);
     try {
-      await updateWikiPage(selectedPageId, {
+      await saveWikiPage(selectedPage.id, {
         title: trimmedTitle,
-        content: editContent,
+        content: selectedPage.content,
       });
     } finally {
       setIsPageSaving(false);
@@ -454,8 +468,6 @@ export function WikiEditor() {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditContent("");
-    setEditTitle("");
   };
 
   const handleAddPage = async () => {
@@ -488,14 +500,13 @@ export function WikiEditor() {
       createdAt: new Date(),
       updatedAt: new Date(),
       position: maxPosition + 1,
+      status: "saved",
     };
 
     try {
       const created = await addWikiPage(newPage);
       if (created) {
         setSelectedPageId(created.id);
-        setEditTitle(created.title);
-        setEditContent(created.content);
         setIsEditing(true);
         setNewPageTitle("");
         setNewPageParentId(null);
@@ -679,6 +690,30 @@ export function WikiEditor() {
     setDropPosition(null);
   }, []);
 
+  const statusCopy = !selectedPage
+    ? "No page selected"
+    : selectedPage.status === "saved"
+      ? "All changes saved"
+      : selectedPage.status === "saving"
+        ? "Saving changes..."
+        : "Unsaved changes";
+
+  const saveButtonLabel = !selectedPage
+    ? "Save"
+    : selectedPage.status === "saved"
+      ? "Saved"
+      : selectedPage.status === "saving"
+        ? "Saving..."
+        : "Save";
+
+  const statusDotClass = cn(
+    "w-2 h-2 rounded-full transition-all duration-200",
+    selectedPage?.status === "saved" && "bg-status-done",
+    selectedPage?.status === "saving" && "bg-status-progress animate-pulse",
+    selectedPage?.status === "unsaved" && "bg-status-todo",
+    !selectedPage && "bg-muted",
+  );
+
   return (
     <div
       className="flex-1 flex gap-6 p-6 h-full min-h-0"
@@ -802,13 +837,23 @@ export function WikiEditor() {
               )}
               <div className="flex items-center justify-between">
                 {isEditing ? (
-                  <div className="w-full max-w-xl pr-4">
+                  <div className="w-full max-w-xl pr-4 space-y-1.5">
                     <AppInput
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
+                      value={selectedPage.title}
+                      onChange={(e) =>
+                        updateWikiDraft(selectedPage.id, { title: e.target.value })
+                      }
                       className="h-8"
                       placeholder="Page title"
                     />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        Updated <RelativeTime date={selectedPage.updatedAt} />
+                      </span>
+                      <span className={statusDotClass} />
+                      <span>{statusCopy}</span>
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -820,6 +865,8 @@ export function WikiEditor() {
                       <span>
                         Updated <RelativeTime date={selectedPage.updatedAt} />
                       </span>
+                      <span className={statusDotClass} />
+                      <span>{statusCopy}</span>
                     </div>
                   </div>
                 )}
@@ -838,10 +885,14 @@ export function WikiEditor() {
                         size="sm"
                         onClick={handleSave}
                         variant="primary"
-                        disabled={isPageSaving}
+                        disabled={
+                          !selectedPage ||
+                          selectedPage.status !== "unsaved" ||
+                          isPageSaving
+                        }
                       >
                         <Save className="w-4 h-4 mr-1" />
-                        Save
+                        {saveButtonLabel}
                       </Button>
                     </>
                   ) : (
@@ -912,8 +963,10 @@ export function WikiEditor() {
             {isEditing ? (
               <div className="flex-1 min-h-0 flex flex-col">
                 <Textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
+                  value={selectedPage.content}
+                  onChange={(e) =>
+                    updateWikiDraft(selectedPage.id, { content: e.target.value })
+                  }
                   className="h-full min-h-0 text-sm resize-none bg-input border-border focus-visible:ring-inset focus-visible:ring-offset-0"
                   placeholder="Write your documentation in Markdown..."
                 />

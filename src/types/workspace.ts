@@ -46,7 +46,10 @@ export interface WikiPage {
   createdAt: Date;
   updatedAt: Date;
   position?: number | null;
+  status: WikiPageStatus;
 }
+
+export type WikiPageStatus = "saved" | "unsaved" | "saving";
 
 export type MemoStatus = "saved" | "unsaved" | "saving";
 

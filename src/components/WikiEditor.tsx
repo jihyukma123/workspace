@@ -890,27 +890,27 @@ export function WikiEditor() {
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-6 scrollbar-thin">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <AppInput
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    placeholder="Page title"
-                  />
-                  <Textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="min-h-[500px] text-sm resize-none bg-input border-border focus-visible:ring-inset focus-visible:ring-offset-0"
-                    placeholder="Write your documentation in Markdown..."
-                  />
-                </div>
-              ) : (
+            {isEditing ? (
+              <div className="flex-1 min-h-0 p-6 flex flex-col gap-4">
+                <AppInput
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Page title"
+                />
+                <Textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="flex-1 min-h-0 text-sm resize-none bg-input border-border focus-visible:ring-inset focus-visible:ring-offset-0"
+                  placeholder="Write your documentation in Markdown..."
+                />
+              </div>
+            ) : (
+              <ScrollArea className="flex-1 p-6 scrollbar-thin">
                 <div className="prose dark:prose-invert max-w-none">
                   {renderMarkdown(selectedPage.content)}
                 </div>
-              )}
-            </ScrollArea>
+              </ScrollArea>
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">

@@ -1,56 +1,33 @@
-# Style Guide
+# Repository Guidelines
 
-## Tech Stack
-- Framework: Tailwind CSS + shadcn/ui (Radix UI)
-- Theme: Dark/Light mode support (HSL via src/index.css)
-- Font: Inter (via Google Fonts)
+This repository is an Electron desktop app with a Vite + React + TypeScript UI, styled with Tailwind CSS and shadcn/ui (Radix). It uses CSS variables (HSL tokens) for light/dark theming.
 
-## Typography
-- Body: `font-sans` (Inter, system fallback)
-- UI Labels/Headers: `font-mono` (system monospace)
+## Project Structure
+- `src/`: React app (routes in `src/pages/`, shared UI in `src/components/`, hooks in `src/hooks/`, state in `src/store/`, utilities in `src/lib/`, types in `src/types/`).
+- `src/test/`: Vitest tests (example only).
+- `electron/`: Electron/main-process helpers (IPC, DB wiring, migrations helpers).
+- `migrations/`, `db/`: SQLite schema/migrations and related assets.
+- `public/`: static assets.
+- `docs/architecture/`: architecture notes.
+- Build outputs (gitignored): `dist/`, `build/`, `release/`.
 
-## Color System (CSS Variables via Tailwind)
-### Base Colors
-- Primary: Teal/Cyan (`primary`) - HSL(173 80% 40-45%)
-- Secondary: Gray (`secondary`) - HSL(220 14-20% 18-92%)
-- Accent: Matches primary (`accent`)
-- Destructive: Red (`destructive`) - HSL(0 62-72% 45-51%)
-- Muted: Gray variants (`muted`, `muted-foreground`)
+## Build, Test, and Development Commands
+- `npm install`: installs deps and rebuilds native modules (`better-sqlite3`) via `postinstall`.
+- `npm run dev`: runs the Vite dev server (port `8080`).
+- `npm run electron:dev`: runs Vite + Electron together for local app development.
+- `npm run build`: TypeScript project build + Vite production build.
+- `npm run preview`: previews the Vite production build.
+- `npm run lint`: ESLint (TypeScript/React).
+- Tests: `npx vitest` (or `npx vitest run`) to execute `src/test/*.test.ts`.
 
-### Sidebar Colors
-- Background: `sidebar` (dark gray)
-- Foreground: `sidebar-foreground`
-- Primary: `sidebar-primary` (teal)
-- Accent: `sidebar-accent`
-- Border: `sidebar-border`
-- Muted: `sidebar-muted`
+## Coding Style & Naming Conventions
+- Language: TypeScript/React; 2-space indentation; semicolons enforced by ESLint (`eslint.config.js`).
+- Exports: prefer function declarations for exported components/hooks (arrow functions OK for callbacks).
+- Naming: components `PascalCase.tsx`; hooks `useX` in `src/hooks/`; shared state in `src/store/` (Zustand).
+- Imports: prefer `@/` alias for `src` (see `vite.config.ts`).
+- Styling rules: no hardcoded hex/HSL; use Tailwind tokens backed by CSS variables (`src/index.css`). Use `cn()` from `@/lib/utils`, shadcn/ui components, `scrollbar-thin`, and match patterns in `ProjectSidebar`/`TabNavigation`.
 
-### Kanban Colors
-- Column: `kanban-column`
-- Card: `kanban-card`
-- Card Hover: `kanban-card-hover`
+## Commit & Pull Request Guidelines
+- Commits in history often use prefixes like `feat:`, `fix:`, `chore:`, `docs:`, `style:`, `refactor:`; follow that pattern when possible and keep messages imperative.
+- PRs should include: a short description, linked issue (if any), screenshots for UI changes, and notes for any DB/migration changes.
 
-### Status Colors
-- Todo: `status-todo` (gray)
-- Progress: `status-progress` (yellow/orange)
-- Done: `status-done` (green)
-
-## Custom Utilities
-- Scrollbar: `scrollbar-thin` (thin custom scrollbar)
-- Animations: `animate-fade-in`, `animate-slide-in`, `animate-accordion-down/up`
-
-## Styling Patterns
-1. Integration: Always use `cn()` utility from `@/lib/utils`.
-2. Interactive: `transition-all duration-200` + `hover:bg-{color}/30` or `hover:bg-sidebar-accent`.
-3. States: Focus via `focus-visible:ring-ring`, Disabled via `opacity-50`.
-4. Headers: `font-mono text-lg font-bold` with primary color.
-5. Cards: `rounded-lg border bg-card text-card-foreground shadow-sm`.
-6. Sidebar: Use `bg-sidebar`, `border-sidebar-border`, `text-sidebar-foreground`.
-7. Buttons: Use `secondary` for Edit actions and `destructive` for Delete actions.
-
-## Constraints
-- NO hardcoded HSL/Hex. Use CSS variables via Tailwind classes.
-- Prefer existing shadcn/ui components.
-- Maintain consistency with `ProjectSidebar` and `TabNavigation`.
-- Use `scrollbar-thin` for custom scrollbars.
-- Support both light and dark modes via `.dark` class.

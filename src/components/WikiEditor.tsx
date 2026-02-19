@@ -782,28 +782,47 @@ export function WikiEditor() {
       <div className="flex-1 flex flex-col min-h-0">
         {selectedPage ? (
           <>
-            <div className="p-4 border-b border-border">
-              <Breadcrumb
-                path={breadcrumbPath}
-                onNavigate={(pageId) => {
-                  if (pageId) {
-                    setSelectedPageId(pageId);
-                    setIsEditing(false);
-                  }
-                }}
-              />
+            <div
+              className={
+                isEditing
+                  ? "px-4 py-2.5 border-b border-border"
+                  : "p-4 border-b border-border"
+              }
+            >
+              {!isEditing && (
+                <Breadcrumb
+                  path={breadcrumbPath}
+                  onNavigate={(pageId) => {
+                    if (pageId) {
+                      setSelectedPageId(pageId);
+                      setIsEditing(false);
+                    }
+                  }}
+                />
+              )}
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-mono text-lg font-bold text-primary">
-                    {selectedPage.title}
-                  </h2>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      Updated <RelativeTime date={selectedPage.updatedAt} />
-                    </span>
+                {isEditing ? (
+                  <div className="w-full max-w-xl pr-4">
+                    <AppInput
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="h-8"
+                      placeholder="Page title"
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <h2 className="font-mono text-lg font-bold text-primary">
+                      {selectedPage.title}
+                    </h2>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        Updated <RelativeTime date={selectedPage.updatedAt} />
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   {isEditing ? (
                     <>
@@ -891,16 +910,11 @@ export function WikiEditor() {
             </div>
 
             {isEditing ? (
-              <div className="flex-1 min-h-0 p-6 flex flex-col gap-4">
-                <AppInput
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="Page title"
-                />
+              <div className="flex-1 min-h-0 flex flex-col">
                 <Textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="flex-1 min-h-0 text-sm resize-none bg-input border-border focus-visible:ring-inset focus-visible:ring-offset-0"
+                  className="h-full min-h-0 text-sm resize-none bg-input border-border focus-visible:ring-inset focus-visible:ring-offset-0"
                   placeholder="Write your documentation in Markdown..."
                 />
               </div>

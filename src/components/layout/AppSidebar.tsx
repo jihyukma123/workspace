@@ -53,17 +53,6 @@ const getProjectColor = (index: number) => {
   return colors[index % colors.length];
 };
 
-const isEditableTarget = (target: EventTarget | null) => {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  return (
-    target.tagName === "INPUT" ||
-    target.tagName === "TEXTAREA" ||
-    target.isContentEditable
-  );
-};
-
 export function AppSidebar() {
   const { projects, selectedProjectId, setSelectedProject, addProject } =
     useWorkspaceStore();
@@ -94,9 +83,6 @@ export function AppSidebar() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
-        return;
-      }
-      if (isEditableTarget(event.target)) {
         return;
       }
 

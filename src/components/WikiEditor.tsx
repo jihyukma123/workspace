@@ -281,6 +281,8 @@ export function WikiEditor() {
   const {
     selectedProjectId,
     wikiPages,
+    selectedWikiPageId,
+    setSelectedWikiPageId,
     setSelectedProject,
     addWikiPage,
     updateWikiDraft,
@@ -296,9 +298,7 @@ export function WikiEditor() {
 
   const treeNodes = useMemo(() => buildWikiTree(projectPages), [projectPages]);
 
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(
-    projectPages[0]?.id || null,
-  );
+  const selectedPageId = selectedWikiPageId;
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -392,7 +392,7 @@ export function WikiEditor() {
 
   useEffect(() => {
     if (!projectPages.length) {
-      setSelectedPageId(null);
+      setSelectedWikiPageId(null);
       return;
     }
 
@@ -400,9 +400,9 @@ export function WikiEditor() {
       !selectedPageId ||
       !projectPages.some((page) => page.id === selectedPageId)
     ) {
-      setSelectedPageId(projectPages[0].id);
+      setSelectedWikiPageId(projectPages[0].id);
     }
-  }, [projectPages, selectedPageId]);
+  }, [projectPages, selectedPageId, setSelectedWikiPageId]);
 
   // Auto-save after 2 seconds of inactivity while editing
   useEffect(() => {
@@ -506,7 +506,7 @@ export function WikiEditor() {
     try {
       const created = await addWikiPage(newPage);
       if (created) {
-        setSelectedPageId(created.id);
+        setSelectedWikiPageId(created.id);
         setIsEditing(true);
         setNewPageTitle("");
         setNewPageParentId(null);
@@ -537,11 +537,6 @@ export function WikiEditor() {
       return;
     }
 
-    setSelectedPageId((current) => {
-      if (current !== pageId) return current;
-      const remaining = projectPages.filter((p) => p.id !== pageId);
-      return remaining[0]?.id ?? null;
-    });
     setIsEditing(false);
 
     toast({
@@ -565,7 +560,7 @@ export function WikiEditor() {
               return;
             }
             await setSelectedProject(selectedProjectId);
-            setSelectedPageId(pageId);
+            setSelectedWikiPageId(pageId);
             toast({
               title: "Restored",
               description: page?.title ? `"${page.title}" restored.` : "Wiki page restored.",
@@ -791,7 +786,7 @@ export function WikiEditor() {
                     selectedPageId={selectedPageId}
                     expandedIds={expandedIds}
                     onSelect={(id) => {
-                      setSelectedPageId(id);
+                      setSelectedWikiPageId(id);
                       setIsEditing(false);
                     }}
                     onToggle={handleToggle}
@@ -829,7 +824,7 @@ export function WikiEditor() {
                   path={breadcrumbPath}
                   onNavigate={(pageId) => {
                     if (pageId) {
-                      setSelectedPageId(pageId);
+                      setSelectedWikiPageId(pageId);
                       setIsEditing(false);
                     }
                   }}

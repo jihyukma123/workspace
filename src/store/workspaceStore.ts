@@ -29,6 +29,7 @@ interface WorkspaceState extends MemoState {
   issues: Issue[];
   issueCommentsByIssueId: Record<string, IssueComment[]>;
   wikiPages: WikiPage[];
+  selectedWikiPageId: string | null;
   reminders: Reminder[];
   dailyLogs: DailyLog[];
   activeTab: "kanban" | "wiki" | "memo" | "issues" | "calendar";
@@ -91,6 +92,7 @@ interface WorkspaceState extends MemoState {
     position: number,
   ) => Promise<void>;
   deleteWikiPage: (pageId: string) => Promise<boolean>;
+  setSelectedWikiPageId: (id: string | null) => void;
   setSelectedMemoId: (id: string | null) => void;
   addMemo: (memo: Memo) => Promise<Memo | null>;
   updateMemoDraft: (memoId: string, content: string) => void;
@@ -220,6 +222,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   issues: [],
   issueCommentsByIssueId: {},
   wikiPages: [],
+  selectedWikiPageId: null,
   reminders: [],
   dailyLogs: [],
   memos: [],
@@ -254,6 +257,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         issues: [],
         issueCommentsByIssueId: {},
         wikiPages: [],
+        selectedWikiPageId: null,
         reminders: [],
         dailyLogs: [],
         memos: [],
@@ -268,6 +272,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         issues: [],
         issueCommentsByIssueId: {},
         wikiPages: [],
+        selectedWikiPageId: null,
         reminders: [],
         dailyLogs: [],
         memos: [],
@@ -321,6 +326,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const dailyLogs = dailyLogResult.ok
       ? dailyLogResult.data.map(mapDailyLog)
       : [];
+    const nextWikiPageId = wikiPages[0]?.id ?? null;
     const nextMemoId = memos[0]?.id ?? null;
 
     set({
@@ -329,6 +335,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       issues,
       issueCommentsByIssueId: {},
       wikiPages,
+      selectedWikiPageId: nextWikiPageId,
       reminders,
       dailyLogs,
       memos,
@@ -800,16 +807,40 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!api) {
       return false;
     }
+    const state = get();
+    const pageToDelete = state.wikiPages.find((page) => page.id === pageId);
+    const projectId = pageToDelete?.projectId ?? state.selectedProjectId;
+    const projectPages = state.wikiPages
+      .filter((page) => page.projectId === projectId)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const pageIndex = projectPages.findIndex((page) => page.id === pageId);
+    let nextSelectedWikiPageId = state.selectedWikiPageId;
+    if (pageIndex !== -1) {
+      if (projectPages.length === 1) {
+        nextSelectedWikiPageId = null;
+      } else if (pageIndex > 0) {
+        nextSelectedWikiPageId = projectPages[pageIndex - 1].id;
+      } else {
+        nextSelectedWikiPageId = projectPages[1]?.id ?? null;
+      }
+    }
+
     const result = await api.wiki.delete({ id: pageId });
     if (!result.ok) {
       reportError(result, "wiki:delete");
       return false;
     }
-    set((state) => ({
-      wikiPages: state.wikiPages.filter((page) => page.id !== pageId),
+    set((current) => ({
+      wikiPages: current.wikiPages.filter((page) => page.id !== pageId),
+      selectedWikiPageId:
+        current.selectedWikiPageId === pageId
+          ? nextSelectedWikiPageId
+          : current.selectedWikiPageId,
     }));
     return true;
   },
+
+  setSelectedWikiPageId: (id) => set({ selectedWikiPageId: id }),
 
   setSelectedMemoId: (id) => set({ selectedMemoId: id }),
 

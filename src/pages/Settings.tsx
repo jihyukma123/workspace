@@ -28,7 +28,7 @@ const settingsItems = [
 export default function Settings() {
   return (
     <MainLayout>
-      <div className={cn("h-screen flex flex-col")}>
+      <div className={cn("flex flex-1 min-h-0 flex-col")}>
         <header className={cn("flex items-center justify-between px-6 py-4 border-b border-border bg-background")}>
           <div>
             <h1 className={cn("font-mono text-lg font-bold text-primary")}>Settings</h1>

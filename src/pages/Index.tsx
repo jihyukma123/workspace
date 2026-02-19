@@ -85,7 +85,6 @@ const Index = () => {
 
   useKeyboardShortcuts({
     onNewItem: handleNewItem,
-    onTabChange: setActiveTab,
     onShowHelp: () => setIsHelpModalOpen(true),
     enabled: !!selectedProjectId,
   });
@@ -172,7 +171,7 @@ const Index = () => {
               Welcome to Workspace
             </h2>
             <p className="text-muted-foreground max-w-md">
-              Select a project from the sidebar to view its Kanban board, Wiki,
+              Select a project from the top bar to view its Kanban board, Wiki,
               and Memo.
             </p>
           </div>

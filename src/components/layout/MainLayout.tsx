@@ -9,13 +9,11 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className={cn("flex h-screen w-full bg-background")}>
+    <div className={cn("flex h-screen w-full flex-col bg-background")}>
       <AppSidebar />
-      <div className={cn("flex flex-1 min-h-0 flex-col lg:flex-row lg:overflow-hidden")}>
-        <main className={cn("flex flex-1 min-h-0 flex-col lg:overflow-hidden")}>
-          {children}
-        </main>
-      </div>
+      <main className={cn("flex flex-1 min-h-0 flex-col overflow-hidden")}>
+        {children}
+      </main>
       <ReminderDock />
     </div>
   );

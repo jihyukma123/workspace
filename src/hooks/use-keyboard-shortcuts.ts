@@ -1,25 +1,13 @@
 import { useEffect, useCallback } from "react";
 
-type TabType = "kanban" | "wiki" | "memo" | "issues" | "calendar";
-
 interface KeyboardShortcutsOptions {
   onNewItem?: () => void;
-  onTabChange?: (tab: TabType) => void;
   onShowHelp?: () => void;
   enabled?: boolean;
 }
 
-const TAB_MAP: Record<string, TabType> = {
-  "1": "kanban",
-  "2": "wiki",
-  "3": "memo",
-  "4": "issues",
-  "5": "calendar",
-};
-
 export function useKeyboardShortcuts({
   onNewItem,
-  onTabChange,
   onShowHelp,
   enabled = true,
 }: KeyboardShortcutsOptions) {
@@ -41,13 +29,6 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // Cmd/Ctrl + 1-5: Tab switch
-      if ((e.metaKey || e.ctrlKey) && TAB_MAP[e.key]) {
-        e.preventDefault();
-        onTabChange?.(TAB_MAP[e.key]);
-        return;
-      }
-
       // Don't process other shortcuts while editing
       if (isEditable) return;
 
@@ -58,7 +39,7 @@ export function useKeyboardShortcuts({
         return;
       }
     },
-    [enabled, onNewItem, onTabChange, onShowHelp],
+    [enabled, onNewItem, onShowHelp],
   );
 
   useEffect(() => {
@@ -69,10 +50,11 @@ export function useKeyboardShortcuts({
 
 export const KEYBOARD_SHORTCUTS = [
   { keys: ["⌘", "N"], description: "새 항목 생성 (Task/Issue/Wiki)" },
-  { keys: ["⌘", "1"], description: "Kanban 탭" },
-  { keys: ["⌘", "2"], description: "Wiki 탭" },
-  { keys: ["⌘", "3"], description: "Memo 탭" },
-  { keys: ["⌘", "4"], description: "Issues 탭" },
-  { keys: ["⌘", "5"], description: "Calendar 탭" },
+  { keys: ["⌘", "1"], description: "상단 메뉴 1번 (Kanban)" },
+  { keys: ["⌘", "2"], description: "상단 메뉴 2번 (Wiki)" },
+  { keys: ["⌘", "3"], description: "상단 메뉴 3번 (Memo)" },
+  { keys: ["⌘", "4"], description: "상단 메뉴 4번 (Issues)" },
+  { keys: ["⌘", "5"], description: "상단 메뉴 5번 (Calendar)" },
+  { keys: ["⌘", "6"], description: "상단 메뉴 6번 (Trash)" },
   { keys: ["?"], description: "단축키 도움말" },
 ];

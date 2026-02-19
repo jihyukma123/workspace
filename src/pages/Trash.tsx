@@ -196,7 +196,7 @@ export default function Trash() {
                 Select a project
               </h3>
               <p className="text-sm text-muted-foreground mt-2">
-                Choose a project in the sidebar to manage its Trash.
+                Choose a project in the top bar to manage its Trash.
               </p>
             </div>
           </div>

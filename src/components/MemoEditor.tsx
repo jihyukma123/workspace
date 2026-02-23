@@ -1,5 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { StickyNote, Save, Clock, Plus, Edit2, X, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  StickyNote,
+  Save,
+  Clock,
+  Plus,
+  Edit2,
+  X,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Textarea } from "@/components/ui/textarea";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -53,8 +63,14 @@ export function MemoEditor() {
   const [isMemoSubmitting, setIsMemoSubmitting] = useState(false);
   const [isMemoSaving, setIsMemoSaving] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const memoSubmitLock = useRef(false);
   const memoSaveLock = useRef(false);
+  const toggleShortcutLabel = "⌘B";
+
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarOpen((previous) => !previous);
+  }, []);
 
   // Listen for keyboard shortcut event
   useEffect(() => {
@@ -108,6 +124,23 @@ export function MemoEditor() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeMemoId, isEditing]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (event.repeat || event.key.toLowerCase() !== "b") {
+        return;
+      }
+
+      event.preventDefault();
+      handleToggleSidebar();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleToggleSidebar]);
 
   const handleAddMemoRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -308,20 +341,44 @@ export function MemoEditor() {
   };
 
   return (
-    <div className="flex-1 flex gap-6 p-6 h-full min-h-0">
-      <div className="w-72 shrink-0">
+    <div
+      className={cn(
+        "flex-1 flex p-6 h-full min-h-0 transition-[gap] duration-200",
+        isSidebarOpen ? "gap-6" : "gap-0",
+      )}
+    >
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden transition-all duration-200 ease-out",
+          isSidebarOpen ? "w-72 opacity-100" : "w-0 opacity-0 pointer-events-none",
+        )}
+      >
         <div className="rounded-lg border border-border bg-card text-card-foreground shadow-sm h-full flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="font-mono text-lg font-bold text-primary">Memos</h3>
-            <Button
-              size="sm"
-              onClick={handleAddMemo}
-              disabled={!selectedProjectId || isMemoSubmitting}
-              variant="primary"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={handleAddMemo}
+                disabled={!selectedProjectId || isMemoSubmitting}
+                variant="primary"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleSidebar}
+                className="h-8 gap-1 px-2 text-muted-foreground hover:text-foreground"
+                title={`Hide memo panel (${toggleShortcutLabel})`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                  {toggleShortcutLabel}
+                </span>
+              </Button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto scrollbar-thin">
             {projectMemos.length === 0 ? (
@@ -381,6 +438,23 @@ export function MemoEditor() {
       </div>
 
       <div className="flex-1 flex flex-col min-h-0">
+        {!isSidebarOpen && (
+          <div className="mb-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleToggleSidebar}
+              className="gap-2"
+              title={`Show memo panel (${toggleShortcutLabel})`}
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span>Show Panel</span>
+              <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                {toggleShortcutLabel}
+              </span>
+            </Button>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between mb-4 lg:mb-2">
           <div className="flex items-center gap-3">

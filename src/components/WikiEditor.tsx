@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Plus,
   FileText,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   Edit2,
@@ -307,9 +308,11 @@ export function WikiEditor() {
   const [newPageParentId, setNewPageParentId] = useState<string | null>(null);
   const [isPageSubmitting, setIsPageSubmitting] = useState(false);
   const [isPageSaving, setIsPageSaving] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pageSubmitLock = useRef(false);
   const pageSaveLock = useRef(false);
   const selectedPage = projectPages.find((p) => p.id === selectedPageId);
+  const toggleShortcutLabel = "⌘B";
 
   // Listen for keyboard shortcut event
   useEffect(() => {
@@ -363,6 +366,27 @@ export function WikiEditor() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isAddOpen, isEditing, selectedPage, selectedPageId]);
+
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarOpen((previous) => !previous);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (event.repeat || event.key.toLowerCase() !== "b") {
+        return;
+      }
+
+      event.preventDefault();
+      handleToggleSidebar();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleToggleSidebar]);
 
   // Drag and drop state
   const [draggedNode, setDraggedNode] = useState<WikiTreeNode | null>(null);
@@ -711,69 +735,91 @@ export function WikiEditor() {
 
   return (
     <div
-      className="flex-1 flex gap-6 p-6 h-full min-h-0"
+      className={cn(
+        "flex-1 flex p-6 h-full min-h-0 transition-[gap] duration-200",
+        isSidebarOpen ? "gap-6" : "gap-0",
+      )}
       onDragEnd={handleDragEnd}
     >
       {/* Sidebar */}
-      <div className="w-72 shrink-0">
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden transition-all duration-200 ease-out",
+          isSidebarOpen ? "w-72 opacity-100" : "w-0 opacity-0 pointer-events-none",
+        )}
+      >
         <div className="rounded-lg border border-border bg-card text-card-foreground shadow-sm h-full flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="font-mono text-lg font-bold text-primary">Wiki</h3>
-            <Dialog
-              open={isAddOpen}
-              onOpenChange={(open) => {
-                setIsAddOpen(open);
-                if (!open) setNewPageParentId(null);
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2" variant="primary">
-                  <Plus className="h-4 w-4" />
-                  New
-                </Button>
-              </DialogTrigger>
-              <DialogContent
-                className="bg-popover border-border"
-                onKeyDown={(e) => {
-                  if (e.defaultPrevented) return;
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    if (isPageSubmitting) return;
-                    e.preventDefault();
-                    handleAddPage();
-                  }
+            <div className="flex items-center gap-2">
+              <Dialog
+                open={isAddOpen}
+                onOpenChange={(open) => {
+                  setIsAddOpen(open);
+                  if (!open) setNewPageParentId(null);
                 }}
               >
-                <DialogHeader>
-                  <DialogTitle>
-                    {newPageParentId
-                      ? `New Subpage of "${projectPages.find((p) => p.id === newPageParentId)?.title}"`
-                      : "New Wiki Page"}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <AppInput
-                    placeholder="Page title"
-                    value={newPageTitle}
-                    onChange={(e) => setNewPageTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        if (isPageSubmitting) return;
-                        e.preventDefault();
-                        handleAddPage();
-                      }
-                    }}
-                  />
-                  <Button
-                    onClick={handleAddPage}
-                    className="w-full"
-                    variant="primary"
-                    disabled={isPageSubmitting}
-                  >
-                    Create Page
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-2" variant="primary">
+                    <Plus className="h-4 w-4" />
+                    New
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent
+                  className="bg-popover border-border"
+                  onKeyDown={(e) => {
+                    if (e.defaultPrevented) return;
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      if (isPageSubmitting) return;
+                      e.preventDefault();
+                      handleAddPage();
+                    }
+                  }}
+                >
+                  <DialogHeader>
+                    <DialogTitle>
+                      {newPageParentId
+                        ? `New Subpage of "${projectPages.find((p) => p.id === newPageParentId)?.title}"`
+                        : "New Wiki Page"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <AppInput
+                      placeholder="Page title"
+                      value={newPageTitle}
+                      onChange={(e) => setNewPageTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (isPageSubmitting) return;
+                          e.preventDefault();
+                          handleAddPage();
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={handleAddPage}
+                      className="w-full"
+                      variant="primary"
+                      disabled={isPageSubmitting}
+                    >
+                      Create Page
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleSidebar}
+                className="h-8 gap-1 px-2 text-muted-foreground hover:text-foreground"
+                title={`Hide wiki panel (${toggleShortcutLabel})`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                  {toggleShortcutLabel}
+                </span>
+              </Button>
+            </div>
           </div>
 
           <ScrollArea className="flex-1 scrollbar-thin">
@@ -810,6 +856,23 @@ export function WikiEditor() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col min-h-0">
+        {!isSidebarOpen && (
+          <div className="p-4 pb-0">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleToggleSidebar}
+              className="gap-2"
+              title={`Show wiki panel (${toggleShortcutLabel})`}
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span>Show Panel</span>
+              <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                {toggleShortcutLabel}
+              </span>
+            </Button>
+          </div>
+        )}
         {selectedPage ? (
           <>
             <div
@@ -975,24 +1038,26 @@ export function WikiEditor() {
             )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center max-w-sm">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <FileText className="w-8 h-8 text-primary" />
+          <>
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              <div className="text-center max-w-sm">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-mono text-lg font-bold text-primary mb-2">
+                  Your Wiki
+                </h3>
+                <p className="text-sm mb-4">
+                  Capture architecture, onboarding notes, and decisions in one
+                  place.
+                </p>
+                <Button onClick={() => setIsAddOpen(true)} variant="primary">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Create Page
+                </Button>
               </div>
-              <h3 className="font-mono text-lg font-bold text-primary mb-2">
-                Your Wiki
-              </h3>
-              <p className="text-sm mb-4">
-                Capture architecture, onboarding notes, and decisions in one
-                place.
-              </p>
-              <Button onClick={() => setIsAddOpen(true)} variant="primary">
-                <Plus className="w-4 h-4 mr-1" />
-                Create Page
-              </Button>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

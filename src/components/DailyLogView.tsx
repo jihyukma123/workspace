@@ -212,7 +212,7 @@ export function DailyLogView() {
   }, [handleSave, hasChanges, isSaving, selectedProjectId]);
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-hidden">
+    <div className="h-full flex flex-col p-6 overflow-hidden">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="rounded-lg border border-border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -307,8 +307,8 @@ export function DailyLogView() {
         </div>
       </div>
 
-      <div className="flex-1 pt-4 overflow-auto scrollbar-thin">
-        <Card className="min-w-0 flex flex-col">
+      <div className="flex-1 pt-4 flex flex-col min-h-0">
+        <Card className="min-w-0 flex flex-col flex-1">
           <CardHeader className="p-4 border-b border-border">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -329,7 +329,7 @@ export function DailyLogView() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-4 flex-1">
+          <CardContent className="p-4 flex-1 flex flex-col min-h-0">
             <Textarea
               ref={(node) => {
                 textareaRef.current = node;
@@ -337,7 +337,7 @@ export function DailyLogView() {
               placeholder="What did you work on today?"
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              className="min-h-[420px] resize-none bg-input border-border"
+              className="flex-1 h-0 resize-none bg-input border-border"
             />
           </CardContent>
         </Card>

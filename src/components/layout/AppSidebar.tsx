@@ -67,9 +67,10 @@ const navTabs: MenuItem[] = [
   },
 ];
 
-const navTabMap = Object.fromEntries(
-  navTabs.map((t) => [t.id, t]),
-) as Record<NavTabId, MenuItem>;
+const navTabMap = Object.fromEntries(navTabs.map((t) => [t.id, t])) as Record<
+  NavTabId,
+  MenuItem
+>;
 
 const fixedItems = [
   { id: "trash" as const, label: "Trash", icon: Trash2, path: "/trash" },
@@ -81,8 +82,15 @@ const getProjectColor = (index: number) => {
 };
 
 export function AppSidebar() {
-  const { projects, selectedProjectId, setSelectedProject, addProject, tabOrder, moveTab, resetTabOrder } =
-    useWorkspaceStore();
+  const {
+    projects,
+    selectedProjectId,
+    setSelectedProject,
+    addProject,
+    tabOrder,
+    moveTab,
+    resetTabOrder,
+  } = useWorkspaceStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -219,19 +227,23 @@ export function AppSidebar() {
       <div
         className={cn(
           "flex flex-wrap items-center gap-3 px-4 py-3",
-          "md:flex-nowrap"
+          "md:flex-nowrap",
         )}
       >
         <div className={cn("flex items-center gap-2 shrink-0")}>
           <div
             className={cn(
-              "w-8 h-8 rounded-lg bg-primary flex items-center justify-center"
+              "w-8 h-8 rounded-lg bg-primary flex items-center justify-center",
             )}
           >
             <FolderKanban className={cn("w-4 h-4 text-primary-foreground")} />
           </div>
           <div className={cn("leading-tight")}>
-            <p className={cn("text-sm font-semibold text-sidebar-accent-foreground")}>
+            <p
+              className={cn(
+                "text-sm font-semibold text-sidebar-accent-foreground",
+              )}
+            >
               Workspace
             </p>
             <p className={cn("text-[11px] text-sidebar-muted")}>
@@ -247,7 +259,7 @@ export function AppSidebar() {
                 variant="sidebar"
                 className={cn(
                   "w-full h-9 justify-between px-3 rounded-lg group",
-                  "text-sm"
+                  "text-sm",
                 )}
               >
                 <div className={cn("flex items-center gap-2 min-w-0")}>
@@ -255,7 +267,7 @@ export function AppSidebar() {
                     <div
                       className={cn(
                         "w-2.5 h-2.5 rounded-full flex-shrink-0",
-                        getProjectColor(projects.indexOf(selectedProject))
+                        getProjectColor(projects.indexOf(selectedProject)),
                       )}
                     />
                   ) : (
@@ -263,7 +275,7 @@ export function AppSidebar() {
                   )}
                   <span
                     className={cn(
-                      "text-sm font-medium text-sidebar-accent-foreground truncate"
+                      "text-sm font-medium text-sidebar-accent-foreground truncate",
                     )}
                   >
                     {selectedProject?.name || "No Project"}
@@ -272,7 +284,7 @@ export function AppSidebar() {
                 <ChevronDown
                   className={cn(
                     "w-4 h-4 text-sidebar-muted",
-                    "group-hover:text-sidebar-foreground transition-colors flex-shrink-0"
+                    "group-hover:text-sidebar-foreground transition-colors flex-shrink-0",
                   )}
                 />
               </Button>
@@ -287,14 +299,14 @@ export function AppSidebar() {
                   key={project.id}
                   onClick={() => void setSelectedProject(project.id)}
                   className={cn(
-                    "flex items-center justify-between cursor-pointer"
+                    "flex items-center justify-between cursor-pointer",
                   )}
                 >
                   <div className={cn("flex items-center gap-3")}>
                     <div
                       className={cn(
                         "w-2.5 h-2.5 rounded-full",
-                        getProjectColor(projects.indexOf(project))
+                        getProjectColor(projects.indexOf(project)),
                       )}
                     />
                     <span className={cn("text-sm")}>{project.name}</span>
@@ -315,7 +327,7 @@ export function AppSidebar() {
             size="icon"
             className={cn(
               "h-8 w-8 text-sidebar-muted transition-all duration-200",
-              "hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              "hover:text-sidebar-foreground hover:bg-sidebar-accent",
             )}
             onClick={() => navigate("/settings")}
           >
@@ -329,7 +341,7 @@ export function AppSidebar() {
                 size="icon"
                 className={cn(
                   "h-8 w-8 text-sidebar-muted transition-all duration-200",
-                  "hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                  "hover:text-sidebar-foreground hover:bg-sidebar-accent",
                 )}
               >
                 <Plus className={cn("h-4 w-4")} />
@@ -368,7 +380,7 @@ export function AppSidebar() {
                 <Button
                   onClick={handleAddProject}
                   className={cn(
-                    "w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                    "w-full bg-primary text-primary-foreground hover:bg-primary/90",
                   )}
                   disabled={isProjectSubmitting}
                 >
@@ -423,14 +435,16 @@ export function AppSidebar() {
                 />
                 <div
                   className={cn(
-                    "flex items-center justify-between text-xs text-muted-foreground"
+                    "flex items-center justify-between text-xs text-muted-foreground",
                   )}
                 >
                   <span>
                     {feedbackText.length} / {feedbackLimit}
                   </span>
                   {feedbackError ? (
-                    <span className={cn("text-destructive")}>{feedbackError}</span>
+                    <span className={cn("text-destructive")}>
+                      {feedbackError}
+                    </span>
                   ) : (
                     <span>Stored locally in your database.</span>
                   )}
@@ -452,7 +466,7 @@ export function AppSidebar() {
         <nav className={cn("w-full")}>
           <div
             className={cn(
-              "flex items-center gap-1 overflow-x-auto scrollbar-thin pb-1"
+              "flex items-center gap-1 overflow-x-auto scrollbar-thin pb-1",
             )}
           >
             {orderedMenuItems.map((item, index) => {
@@ -465,7 +479,7 @@ export function AppSidebar() {
                     "h-9 shrink-0 rounded-lg px-3 gap-2",
                     isActive
                       ? "bg-sidebar-primary/10 text-sidebar-primary-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
                   )}
                   variant="sidebarNav"
                   size="sm"
@@ -477,11 +491,13 @@ export function AppSidebar() {
                       "hidden sm:inline-flex items-center justify-center",
                       "h-6 min-w-[34px] rounded-md border border-sidebar-border",
                       "bg-sidebar-accent/70 px-2 font-semibold",
-                      "text-sidebar-accent-foreground"
+                      "text-sidebar-accent-foreground",
                     )}
                   >
                     <span className={cn("text-sm leading-none")}>⌘</span>
-                    <span className={cn("text-xs leading-none")}>{index + 1}</span>
+                    <span className={cn("text-xs leading-none")}>
+                      {index + 1}
+                    </span>
                   </kbd>
                 </Button>
               );
@@ -496,7 +512,7 @@ export function AppSidebar() {
                         variant="ghost"
                         size="icon"
                         className={cn(
-                          "h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                          "h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
                         )}
                       >
                         <Settings2 className="w-4 h-4" />
@@ -510,7 +526,9 @@ export function AppSidebar() {
 
                 <PopoverContent align="end" className="w-56 p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-foreground">Tab Order</span>
+                    <span className="text-sm font-medium text-foreground">
+                      Tab Order
+                    </span>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -540,7 +558,9 @@ export function AppSidebar() {
                           className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
                         >
                           <tab.icon className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <span className="flex-1 text-foreground">{tab.label}</span>
+                          <span className="flex-1 text-foreground">
+                            {tab.label}
+                          </span>
                           <div className="flex items-center gap-0.5">
                             <Button
                               variant="ghost"

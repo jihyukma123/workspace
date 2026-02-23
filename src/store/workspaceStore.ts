@@ -24,7 +24,13 @@ import {
 
 export type NavTabId = "board" | "wiki" | "memo" | "issues" | "calendar";
 
-export const DEFAULT_TAB_ORDER: NavTabId[] = ["board", "wiki", "memo", "issues", "calendar"];
+export const DEFAULT_TAB_ORDER: NavTabId[] = [
+  "board",
+  "wiki",
+  "memo",
+  "issues",
+  "calendar",
+];
 
 const TAB_ORDER_STORAGE_KEY = "workspace-tab-order";
 
@@ -86,9 +92,7 @@ interface WorkspaceState extends MemoState {
   addIssue: (issue: Issue) => Promise<Issue | null>;
   updateIssue: (
     issueId: string,
-    updates: Partial<
-      Pick<Issue, "title" | "status" | "priority" | "dueDate">
-    >,
+    updates: Partial<Pick<Issue, "title" | "status" | "priority" | "dueDate">>,
   ) => Promise<void>;
   updateIssueStatus: (
     issueId: string,
@@ -991,12 +995,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       memos: state.memos.map((memo) =>
         memo.id === memoId
           ? {
-            ...memo,
-            content: snapshot.content,
-            title: getMemoTitleFromContent(snapshot.content),
-            updatedAt: snapshot.updatedAt,
-            status: snapshot.status,
-          }
+              ...memo,
+              content: snapshot.content,
+              title: getMemoTitleFromContent(snapshot.content),
+              updatedAt: snapshot.updatedAt,
+              status: snapshot.status,
+            }
           : memo,
       ),
     })),

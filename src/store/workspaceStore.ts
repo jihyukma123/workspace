@@ -22,6 +22,36 @@ import {
   WikiPageRecord,
 } from "@/types/ipc";
 
+export type NavTabId = "board" | "wiki" | "memo" | "issues" | "calendar";
+
+export const DEFAULT_TAB_ORDER: NavTabId[] = ["board", "wiki", "memo", "issues", "calendar"];
+
+const TAB_ORDER_STORAGE_KEY = "workspace-tab-order";
+
+function loadTabOrder(): NavTabId[] {
+  try {
+    const stored = localStorage.getItem(TAB_ORDER_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as NavTabId[];
+      // Validate: must contain exactly the same tabs
+      if (
+        Array.isArray(parsed) &&
+        parsed.length === DEFAULT_TAB_ORDER.length &&
+        DEFAULT_TAB_ORDER.every((t) => parsed.includes(t))
+      ) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return [...DEFAULT_TAB_ORDER];
+}
+
+function saveTabOrder(order: NavTabId[]): void {
+  localStorage.setItem(TAB_ORDER_STORAGE_KEY, JSON.stringify(order));
+}
+
 interface WorkspaceState extends MemoState {
   projects: Project[];
   selectedProjectId: string | null;
@@ -33,6 +63,7 @@ interface WorkspaceState extends MemoState {
   reminders: Reminder[];
   dailyLogs: DailyLog[];
   activeTab: "kanban" | "wiki" | "memo" | "issues" | "calendar";
+  tabOrder: NavTabId[];
   isHydrated: boolean;
 
   // Actions
@@ -41,6 +72,8 @@ interface WorkspaceState extends MemoState {
   setActiveTab: (
     tab: "kanban" | "wiki" | "memo" | "issues" | "calendar",
   ) => void;
+  moveTab: (tabId: NavTabId, direction: "up" | "down") => void;
+  resetTabOrder: () => void;
   addProject: (project: Project) => Promise<Project | null>;
   deleteProject: (projectId: string) => Promise<void>;
   addTask: (task: Task) => Promise<Task | null>;
@@ -228,6 +261,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   memos: [],
   selectedMemoId: null,
   activeTab: "kanban",
+  tabOrder: loadTabOrder(),
   isHydrated: false,
 
   hydrate: async () => {
@@ -344,6 +378,23 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  moveTab: (tabId, direction) => {
+    const order = [...get().tabOrder];
+    const idx = order.indexOf(tabId);
+    if (idx === -1) return;
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= order.length) return;
+    [order[idx], order[targetIdx]] = [order[targetIdx], order[idx]];
+    saveTabOrder(order);
+    set({ tabOrder: order });
+  },
+
+  resetTabOrder: () => {
+    const order = [...DEFAULT_TAB_ORDER];
+    saveTabOrder(order);
+    set({ tabOrder: order });
+  },
 
   addProject: async (project) => {
     const api = ensureApi();

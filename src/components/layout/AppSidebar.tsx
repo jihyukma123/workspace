@@ -12,6 +12,9 @@ import {
   Plus,
   MessageSquare,
   Settings,
+  Settings2,
+  ChevronUp,
+  RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -20,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "@/store/workspaceStore";
+import { useWorkspaceStore, type NavTabId } from "@/store/workspaceStore";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -33,8 +36,25 @@ import {
 import { AppInput } from "@/components/ui/app-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-const menuItems = [
+type MenuItem = {
+  id: NavTabId;
+  label: string;
+  icon: typeof LayoutGrid;
+  path: string;
+};
+
+const navTabs: MenuItem[] = [
   { id: "board", label: "Kanban Board", icon: LayoutGrid, path: "/" },
   { id: "wiki", label: "Wiki", icon: BookOpen, path: "/wiki" },
   { id: "memo", label: "Memo", icon: StickyNote, path: "/memo" },
@@ -45,8 +65,15 @@ const menuItems = [
     icon: CalendarDays,
     path: "/calendar",
   },
-  { id: "trash", label: "Trash", icon: Trash2, path: "/trash" },
-] as const;
+];
+
+const navTabMap = Object.fromEntries(
+  navTabs.map((t) => [t.id, t]),
+) as Record<NavTabId, MenuItem>;
+
+const fixedItems = [
+  { id: "trash" as const, label: "Trash", icon: Trash2, path: "/trash" },
+];
 
 const getProjectColor = (index: number) => {
   const colors = ["bg-primary", "bg-status-progress", "bg-status-done"];
@@ -54,7 +81,7 @@ const getProjectColor = (index: number) => {
 };
 
 export function AppSidebar() {
-  const { projects, selectedProjectId, setSelectedProject, addProject } =
+  const { projects, selectedProjectId, setSelectedProject, addProject, tabOrder, moveTab, resetTabOrder } =
     useWorkspaceStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,6 +107,11 @@ export function AppSidebar() {
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) || projects[0];
 
+  const orderedMenuItems = [
+    ...tabOrder.map((id) => navTabMap[id]),
+    ...fixedItems,
+  ];
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
@@ -91,7 +123,7 @@ export function AppSidebar() {
         return;
       }
 
-      const targetMenu = menuItems[shortcutIndex];
+      const targetMenu = orderedMenuItems[shortcutIndex];
       if (!targetMenu) {
         return;
       }
@@ -106,7 +138,7 @@ export function AppSidebar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, orderedMenuItems]);
 
   const handleAddProject = async () => {
     if (newProjectName.trim()) {
@@ -423,7 +455,7 @@ export function AppSidebar() {
               "flex items-center gap-1 overflow-x-auto scrollbar-thin pb-1"
             )}
           >
-            {menuItems.map((item, index) => {
+            {orderedMenuItems.map((item, index) => {
               const isActive = location.pathname === item.path;
               return (
                 <Button
@@ -454,6 +486,88 @@ export function AppSidebar() {
                 </Button>
               );
             })}
+
+            <div className="ml-auto shrink-0">
+              <Popover>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        )}
+                      >
+                        <Settings2 className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Customize tab order</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <PopoverContent align="end" className="w-56 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">Tab Order</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                          onClick={resetTabOrder}
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Reset to default</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  <div className="space-y-1">
+                    {tabOrder.map((tabId, idx) => {
+                      const tab = navTabMap[tabId];
+                      const isFirst = idx === 0;
+                      const isLast = idx === tabOrder.length - 1;
+
+                      return (
+                        <div
+                          key={tabId}
+                          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                        >
+                          <tab.icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="flex-1 text-foreground">{tab.label}</span>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              disabled={isFirst}
+                              onClick={() => moveTab(tabId, "up")}
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              disabled={isLast}
+                              onClick={() => moveTab(tabId, "down")}
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </nav>
       </div>

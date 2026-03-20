@@ -11,9 +11,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useWorkspaceStore } from "@/store/workspaceStore";
-import { Textarea } from "@/components/ui/textarea";
+import { AppInput } from "@/components/ui/app-input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
+import { BlockEditor } from "@/components/editor/BlockEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,13 +27,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { renderMarkdown } from "@/components/markdown/renderMarkdown";
+import { createEmptyWorkspaceDocument } from "@/lib/editor/documentSchema";
 import { MemoStatus } from "@/types/workspace";
 import { toast } from "@/hooks/use-toast";
 
 type MemoSnapshot = {
   id: string;
-  content: string;
+  title: string;
+  document: ReturnType<typeof createEmptyWorkspaceDocument>;
+  contentText: string;
   updatedAt: Date | null;
   status: MemoStatus;
 };
@@ -47,6 +50,7 @@ export function MemoEditor() {
     addMemo,
     updateMemoDraft,
     saveMemo,
+    revertMemo,
     deleteMemo,
   } = useWorkspaceStore();
 
@@ -72,7 +76,6 @@ export function MemoEditor() {
     setIsSidebarOpen((previous) => !previous);
   }, []);
 
-  // Listen for keyboard shortcut event
   useEffect(() => {
     const handleShortcut = () => {
       if (!selectedProjectId || memoSubmitLock.current) return;
@@ -172,13 +175,20 @@ export function MemoEditor() {
     }
   }, [activeMemo, editSnapshot]);
 
-  // Auto-save after 2 seconds of inactivity
   useEffect(() => {
-    if (!activeMemo || !isEditing || activeMemo.status !== "unsaved") {
+    if (
+      !activeMemo ||
+      !isEditing ||
+      activeMemo.status !== "unsaved" ||
+      !activeMemo.title.trim()
+    ) {
       return;
     }
     const timer = setTimeout(() => {
-      void saveMemo(activeMemo.id, activeMemo.content);
+      void saveMemo(activeMemo.id, {
+        title: activeMemo.title,
+        document: activeMemo.document,
+      });
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -230,7 +240,8 @@ export function MemoEditor() {
         id: `memo-${now.getTime()}`,
         projectId: selectedProjectId,
         title: "Untitled Memo",
-        content: "",
+        document: createEmptyWorkspaceDocument(),
+        contentText: "",
         createdAt: now,
         updatedAt: null,
         status: "unsaved",
@@ -244,7 +255,6 @@ export function MemoEditor() {
     }
   };
 
-  // Keep ref updated for shortcut handler
   handleAddMemoRef.current = handleAddMemo;
 
   const handleEdit = () => {
@@ -253,7 +263,9 @@ export function MemoEditor() {
     }
     setEditSnapshot({
       id: activeMemo.id,
-      content: activeMemo.content,
+      title: activeMemo.title,
+      document: activeMemo.document,
+      contentText: activeMemo.contentText,
       updatedAt: activeMemo.updatedAt,
       status: activeMemo.status,
     });
@@ -261,12 +273,22 @@ export function MemoEditor() {
   };
 
   const handleCancel = () => {
+    if (activeMemo && editSnapshot && editSnapshot.id === activeMemo.id) {
+      revertMemo(activeMemo.id, editSnapshot);
+    }
     setIsEditing(false);
     setEditSnapshot(null);
   };
 
   const handleSave = async () => {
     if (!activeMemo) {
+      return;
+    }
+    if (!activeMemo.title.trim()) {
+      toast({
+        title: "Memo title required",
+        description: "Add a title before saving this memo.",
+      });
       return;
     }
     if (memoSaveLock.current) {
@@ -277,7 +299,10 @@ export function MemoEditor() {
     setIsEditing(false);
     setEditSnapshot(null);
     try {
-      await saveMemo(activeMemo.id, activeMemo.content);
+      await saveMemo(activeMemo.id, {
+        title: activeMemo.title,
+        document: activeMemo.document,
+      });
     } finally {
       setIsMemoSaving(false);
       memoSaveLock.current = false;
@@ -425,7 +450,7 @@ export function MemoEditor() {
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2">
-                          {memo.content || "No content yet"}
+                          {memo.contentText || "No content yet"}
                         </p>
                       </div>
                     </Button>
@@ -455,166 +480,182 @@ export function MemoEditor() {
             </Button>
           </div>
         )}
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4 lg:mb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <StickyNote className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-mono text-lg font-bold text-primary">
-                {activeMemo?.title || "Untitled Memo"}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Capture your thoughts instantly
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              <span>
-                Last saved:{" "}
-                {formatTime(
-                  activeMemo?.updatedAt ?? activeMemo?.createdAt ?? null,
-                )}
-              </span>
-            </div>
-            {isEditing ? (
-              <>
-                <Button variant="secondary" size="sm" onClick={handleCancel}>
-                  <X className="w-4 h-4 mr-1" />
-                  Read Mode
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={
-                    !activeMemo ||
-                    activeMemo.status !== "unsaved" ||
-                    isMemoSaving
-                  }
-                  size="sm"
-                  variant="primary"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saveButtonLabel}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleEdit}
-                  disabled={!activeMemo}
-                >
-                  <Edit2 className="w-4 h-4 mr-1" />
-                  Edit Mode
-                </Button>
-                <AlertDialog
-                  open={isDeleteDialogOpen}
-                  onOpenChange={setIsDeleteDialogOpen}
-                >
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      aria-label="Move memo to Trash"
-                      title="Move to Trash"
-                      disabled={!activeMemo}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent
-                    defaultAction="action"
-                    className="bg-popover border-border"
-                  >
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Move this memo to Trash?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        You can restore it from Trash for 30 days.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDelete}
-                        className={buttonVariants({ variant: "destructive" })}
-                      >
-                        Move to Trash
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Status indicator */}
-        <div className="mb-4 lg:mb-2 flex items-center gap-2">
-          <span className={statusDotClass} />
-          <span className="text-xs text-muted-foreground">{statusCopy}</span>
-        </div>
-
-        {/* Editor */}
-        <div className={cn("flex-1 relative min-h-0", "lg:min-h-[560px]")}>
-          <div
-            className={cn(
-              "absolute inset-0 rounded-lg border border-border overflow-hidden",
-              "lg:shadow-sm",
-            )}
-          >
-            {isEditing ? (
-              <Textarea
-                value={activeMemo?.content ?? ""}
-                onChange={(e) => {
-                  if (!activeMemo) {
-                    return;
-                  }
-                  updateMemoDraft(activeMemo.id, e.target.value);
-                }}
-                placeholder="Start typing your notes here... 
-
-You can use Markdown:
-# Heading
-- List items
-- [ ] Todo items
-**Bold text**"
-                disabled={!activeMemo}
-                className={cn(
-                  "h-full w-full resize-none text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 scrollbar-thin",
-                  "lg:text-base lg:leading-7",
-                )}
-              />
-            ) : (
-              <div className="h-full w-full overflow-y-auto p-4 scrollbar-thin">
-                {activeMemo?.content?.trim() ? (
-                  <div className="prose dark:prose-invert max-w-none lg:prose-lg">
-                    {renderMarkdown(activeMemo.content)}
+        {activeMemo ? (
+          <>
+            <div className={cn("mb-4 lg:mb-2 rounded-lg border border-border bg-card/50")}>
+              <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <StickyNote className="w-5 h-5 text-primary" />
                   </div>
+                  {isEditing ? (
+                    <div className="flex-1 min-w-0">
+                      <AppInput
+                        value={activeMemo.title}
+                        onChange={(event) =>
+                          updateMemoDraft(activeMemo.id, {
+                            title: event.target.value,
+                          })
+                        }
+                        placeholder="Memo title"
+                        className="h-9"
+                      />
+                    </div>
+                  ) : (
+                    <div className="min-w-0">
+                      <h2 className="font-mono text-lg font-bold text-primary truncate">
+                        {activeMemo.title || "Untitled Memo"}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Capture your thoughts instantly
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      Last saved:{" "}
+                      {formatTime(activeMemo.updatedAt ?? activeMemo.createdAt)}
+                    </span>
+                    <span className={statusDotClass} />
+                    <span>{statusCopy}</span>
+                  </div>
+                  {isEditing ? (
+                    <>
+                      <Button variant="secondary" size="sm" onClick={handleCancel}>
+                        <X className="w-4 h-4 mr-1" />
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleSave}
+                        disabled={
+                          activeMemo.status !== "unsaved" ||
+                          isMemoSaving ||
+                          !activeMemo.title.trim()
+                        }
+                        size="sm"
+                        variant="primary"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {saveButtonLabel}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="secondary" size="sm" onClick={handleEdit}>
+                        <Edit2 className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <AlertDialog
+                        open={isDeleteDialogOpen}
+                        onOpenChange={setIsDeleteDialogOpen}
+                      >
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            aria-label="Move memo to Trash"
+                            title="Move to Trash"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent
+                          defaultAction="action"
+                          className="bg-popover border-border"
+                        >
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Move this memo to Trash?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              You can restore it from Trash for 30 days.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDelete}
+                              className={buttonVariants({ variant: "destructive" })}
+                            >
+                              Move to Trash
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className={cn("flex-1 relative min-h-0", "lg:min-h-[560px]")}>
+              <div
+                className={cn(
+                  "absolute inset-0 rounded-lg border border-border overflow-hidden bg-background",
+                  "lg:shadow-sm",
+                )}
+              >
+                {isEditing ? (
+                  <BlockEditor
+                    key={`${activeMemo.id}:edit`}
+                    value={activeMemo.document}
+                    editable
+                    autofocus
+                    className="h-full text-sm lg:text-base lg:leading-7"
+                    onChange={(document) =>
+                      updateMemoDraft(activeMemo.id, { document })
+                    }
+                  />
+                ) : (activeMemo.contentText ?? "").trim() ? (
+                  <BlockEditor
+                    key={`${activeMemo.id}:read`}
+                    value={activeMemo.document}
+                    className="h-full text-sm lg:text-base lg:leading-7"
+                  />
                 ) : (
-                  <div className="text-sm text-muted-foreground lg:text-base lg:leading-7">
+                  <div className="h-full w-full overflow-y-auto p-4 scrollbar-thin text-sm text-muted-foreground lg:text-base lg:leading-7">
                     No content yet. Click Edit to add your notes.
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Tips */}
-        <div className="mt-4 lg:mt-2 p-3 rounded-lg bg-muted/30 border border-border">
-          <p className="text-xs text-muted-foreground">
-            <span className="text-primary font-medium">TIP:</span> Edits
-            auto-save after 2 seconds of inactivity. Use Markdown syntax for
-            formatting.
-          </p>
-        </div>
+            <div className="mt-4 lg:mt-2 p-3 rounded-lg bg-muted/30 border border-border">
+              <p className="text-xs text-muted-foreground">
+                <span className="text-primary font-medium">TIP:</span> Blocks
+                auto-save after 2 seconds of inactivity. Markdown shortcuts like
+                headings, lists, quotes, task items, and code fences are supported.
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center max-w-sm">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <StickyNote className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-mono text-lg font-bold text-primary mb-2">
+                Your Memos
+              </h3>
+              <p className="text-sm mb-4">
+                Capture loose notes, postmortems, and structured retros in block form.
+              </p>
+              <Button
+                onClick={handleAddMemo}
+                variant="primary"
+                disabled={!selectedProjectId || isMemoSubmitting}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Create Memo
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

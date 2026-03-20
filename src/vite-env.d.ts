@@ -12,6 +12,8 @@ import type {
   ReminderRecord,
   FeedbackRecord,
   FeedbackListInput,
+  FeedbackGithubIssueCreateInput,
+  FeedbackGithubIssueRecord,
   TrashListInput,
   TrashItemRecord,
   TrashActionInput,
@@ -82,7 +84,7 @@ declare global {
           id: string;
           projectId: string;
           title: string;
-          content: string;
+          document: WikiPageRecord["document"];
           parentId: string | null;
           createdAt: number;
           updatedAt: number;
@@ -91,7 +93,7 @@ declare global {
         update: (input: {
           id: string;
           updates: Partial<
-            Pick<WikiPageRecord, "title" | "content" | "parentId" | "position">
+            Pick<WikiPageRecord, "title" | "document" | "parentId" | "position">
           >;
         }) => Promise<Result<WikiPageRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
@@ -101,7 +103,7 @@ declare global {
         create: (input: MemoRecord) => Promise<Result<MemoRecord>>;
         update: (input: {
           id: string;
-          updates: Partial<Pick<MemoRecord, "title" | "content" | "updatedAt">>;
+          updates: Partial<Pick<MemoRecord, "title" | "document" | "updatedAt">>;
         }) => Promise<Result<MemoRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
       };
@@ -132,6 +134,9 @@ declare global {
       feedback: {
         create: (input: FeedbackRecord) => Promise<Result<FeedbackRecord>>;
         list: (input?: FeedbackListInput) => Promise<Result<FeedbackRecord[]>>;
+        createGithubIssue: (
+          input: FeedbackGithubIssueCreateInput,
+        ) => Promise<Result<FeedbackGithubIssueRecord>>;
       };
       trash: {
         list: (input: TrashListInput) => Promise<Result<TrashItemRecord[]>>;

@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import {
+  areWorkspaceDocumentsEqual,
+  createWorkspaceDocument,
+} from "@/lib/editor/documentSchema";
+import { getPlainTextFromWorkspaceDocument } from "@/lib/editor/documentText";
+import {
   Project,
   Task,
   WikiPage,
@@ -112,16 +117,16 @@ interface WorkspaceState extends MemoState {
   updateWikiPage: (
     pageId: string,
     updates: Partial<
-      Pick<WikiPage, "title" | "content" | "parentId" | "position">
+      Pick<WikiPage, "title" | "document" | "parentId" | "position">
     >,
   ) => Promise<void>;
   updateWikiDraft: (
     pageId: string,
-    updates: Partial<Pick<WikiPage, "title" | "content">>,
+    updates: Partial<Pick<WikiPage, "title" | "document">>,
   ) => void;
   saveWikiPage: (
     pageId: string,
-    updates: Pick<WikiPage, "title" | "content">,
+    updates: Pick<WikiPage, "title" | "document">,
   ) => Promise<void>;
   moveWikiPage: (
     pageId: string,
@@ -132,11 +137,20 @@ interface WorkspaceState extends MemoState {
   setSelectedWikiPageId: (id: string | null) => void;
   setSelectedMemoId: (id: string | null) => void;
   addMemo: (memo: Memo) => Promise<Memo | null>;
-  updateMemoDraft: (memoId: string, content: string) => void;
-  saveMemo: (memoId: string, content: string) => Promise<void>;
+  updateMemoDraft: (
+    memoId: string,
+    updates: Partial<Pick<Memo, "title" | "document">>,
+  ) => void;
+  saveMemo: (
+    memoId: string,
+    updates: Pick<Memo, "title" | "document">,
+  ) => Promise<void>;
   revertMemo: (
     memoId: string,
-    snapshot: Pick<Memo, "content" | "updatedAt" | "status">,
+    snapshot: Pick<
+      Memo,
+      "title" | "document" | "contentText" | "updatedAt" | "status"
+    >,
   ) => void;
   deleteMemo: (memoId: string) => Promise<boolean>;
   addDailyLog: (log: DailyLog) => Promise<DailyLog | null>;
@@ -191,11 +205,55 @@ const mapIssueComment = (record: IssueCommentRecord): IssueComment => ({
   createdAt: new Date(record.createdAt),
 });
 
+function createDocumentFromLegacyText(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return createWorkspaceDocument();
+  }
+
+  return createWorkspaceDocument({
+    type: "doc",
+    content: trimmed.split(/\r?\n/).map((line) => ({
+      type: "paragraph",
+      content: line ? [{ type: "text", text: line }] : [],
+    })),
+  });
+}
+
+function getIncomingContentText(
+  record: { contentText?: unknown; content?: unknown },
+) {
+  if (typeof record.contentText === "string") {
+    return record.contentText;
+  }
+  if (typeof record.content === "string") {
+    return record.content;
+  }
+  return "";
+}
+
+function getIncomingDocument(
+  record: { document?: unknown; contentText?: unknown; content?: unknown },
+) {
+  const candidate = record.document;
+  if (
+    candidate &&
+    typeof candidate === "object" &&
+    "doc" in (candidate as Record<string, unknown>)
+  ) {
+    const document = candidate as WikiPageRecord["document"];
+    return createWorkspaceDocument(document.doc, document.metadata);
+  }
+
+  return createDocumentFromLegacyText(getIncomingContentText(record));
+}
+
 const mapWikiPage = (record: WikiPageRecord): WikiPage => ({
   id: record.id,
   projectId: record.projectId,
   title: record.title,
-  content: record.content,
+  document: getIncomingDocument(record),
+  contentText: getIncomingContentText(record),
   parentId: record.parentId,
   children: [],
   createdAt: new Date(record.createdAt),
@@ -208,7 +266,8 @@ const mapMemo = (record: MemoRecord): Memo => ({
   id: record.id,
   projectId: record.projectId,
   title: record.title,
-  content: record.content,
+  document: getIncomingDocument(record),
+  contentText: getIncomingContentText(record),
   createdAt: new Date(record.createdAt),
   updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
   status: "saved",
@@ -232,11 +291,6 @@ const mapReminder = (record: ReminderRecord): Reminder => ({
   updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
   remindAt: record.remindAt ? new Date(record.remindAt) : null,
 });
-
-const getMemoTitleFromContent = (content: string) => {
-  const firstLine = content.split(/\r?\n/)[0]?.trim() ?? "";
-  return firstLine.length > 0 ? firstLine : "Untitled Memo";
-};
 
 const reportError = (result: Result<unknown>, context: string) => {
   if (result.ok === false) {
@@ -720,7 +774,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id: page.id,
       projectId: page.projectId,
       title: page.title,
-      content: page.content,
+      document: page.document,
       parentId: page.parentId,
       createdAt: page.createdAt.getTime(),
       updatedAt: page.updatedAt.getTime(),
@@ -761,14 +815,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           return page;
         }
         const nextTitle = updates.title ?? page.title;
-        const nextContent = updates.content ?? page.content;
-        if (nextTitle === page.title && nextContent === page.content) {
+        const nextDocument = updates.document ?? page.document;
+        const nextContentText =
+          updates.document !== undefined
+            ? getPlainTextFromWorkspaceDocument(nextDocument)
+            : page.contentText;
+        if (
+          nextTitle === page.title &&
+          areWorkspaceDocumentsEqual(nextDocument, page.document)
+        ) {
           return page;
         }
         return {
           ...page,
           title: nextTitle,
-          content: nextContent,
+          document: nextDocument,
+          contentText: nextContentText,
           status: "unsaved",
         };
       }),
@@ -780,7 +842,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return;
     }
     const title = updates.title.trim();
-    const content = updates.content;
+    const document = updates.document;
     set((state) => ({
       wikiPages: state.wikiPages.map((page) =>
         page.id === pageId ? { ...page, status: "saving" } : page,
@@ -789,7 +851,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const result = await api.wiki.update({
       id: pageId,
-      updates: { title, content },
+      updates: { title, document },
     });
 
     if (!result.ok) {
@@ -810,14 +872,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         }
         // Keep it dirty if edits changed while this save request was in flight.
         const titleMatches = page.title.trim() === title;
-        const contentMatches = page.content === content;
-        if (!titleMatches || !contentMatches) {
+        const documentMatches = areWorkspaceDocumentsEqual(
+          page.document,
+          document,
+        );
+        if (!titleMatches || !documentMatches) {
           return { ...page, status: "unsaved" };
         }
         return {
           ...page,
           title: updated.title,
-          content: updated.content,
+          document: updated.document,
+          contentText: updated.contentText,
           updatedAt: updated.updatedAt,
           status: "saved",
         };
@@ -908,9 +974,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id: memo.id,
       projectId: memo.projectId,
       title: memo.title,
-      content: memo.content,
+      document: memo.document,
+      contentText: memo.contentText,
       createdAt: memo.createdAt.getTime(),
       updatedAt: memo.updatedAt ? memo.updatedAt.getTime() : null,
+      contentSchemaVersion: memo.document.schemaVersion,
     };
     const result = await api.memos.create(payload);
     if (!result.ok) {
@@ -925,30 +993,41 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     return created;
   },
 
-  updateMemoDraft: (memoId, content) =>
+  updateMemoDraft: (memoId, updates) =>
     set((state) => ({
       memos: state.memos.map((memo) => {
         if (memo.id !== memoId) {
           return memo;
         }
-        if (memo.content === content) {
+        const nextTitle = updates.title ?? memo.title;
+        const nextDocument = updates.document ?? memo.document;
+        const nextContentText =
+          updates.document !== undefined
+            ? getPlainTextFromWorkspaceDocument(nextDocument)
+            : memo.contentText;
+        if (
+          nextTitle === memo.title &&
+          areWorkspaceDocumentsEqual(nextDocument, memo.document)
+        ) {
           return memo;
         }
         return {
           ...memo,
-          content,
-          title: getMemoTitleFromContent(content),
+          title: nextTitle,
+          document: nextDocument,
+          contentText: nextContentText,
           status: "unsaved",
         };
       }),
     })),
 
-  saveMemo: async (memoId, content) => {
+  saveMemo: async (memoId, updates) => {
     const api = ensureApi();
     if (!api) {
       return;
     }
-    const title = getMemoTitleFromContent(content);
+    const title = updates.title.trim();
+    const document = updates.document;
     const savingAt = new Date();
     set((state) => ({
       memos: state.memos.map((memo) =>
@@ -958,7 +1037,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const result = await api.memos.update({
       id: memoId,
-      updates: { title, content, updatedAt: savingAt.getTime() },
+      updates: { title, document, updatedAt: savingAt.getTime() },
     });
 
     if (!result.ok) {
@@ -977,12 +1056,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         if (memo.id !== memoId) {
           return memo;
         }
-        if (memo.content !== content) {
+        if (
+          memo.title.trim() !== title ||
+          !areWorkspaceDocumentsEqual(memo.document, document)
+        ) {
           return { ...memo, status: "unsaved" };
         }
         return {
           ...memo,
-          title,
+          title: updated.title,
+          document: updated.document,
+          contentText: updated.contentText,
           updatedAt: updated.updatedAt,
           status: "saved",
         };
@@ -995,12 +1079,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       memos: state.memos.map((memo) =>
         memo.id === memoId
           ? {
-              ...memo,
-              content: snapshot.content,
-              title: getMemoTitleFromContent(snapshot.content),
-              updatedAt: snapshot.updatedAt,
-              status: snapshot.status,
-            }
+            ...memo,
+            title: snapshot.title,
+            document: snapshot.document,
+            contentText: snapshot.contentText,
+            updatedAt: snapshot.updatedAt,
+            status: snapshot.status,
+          }
           : memo,
       ),
     })),

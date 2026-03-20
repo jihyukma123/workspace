@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import { migrations } from './migrations.js';
+import { backfillLegacyDocumentColumns } from './document.js';
 
 const DEFAULT_MAX_BACKUPS = 20;
 
@@ -161,5 +162,6 @@ export const openDatabase = () => {
   db.pragma('busy_timeout = 5000');
   db.pragma('foreign_keys = ON');
   runMigrations(db);
+  backfillLegacyDocumentColumns(db);
   return { db, dbPath };
 };

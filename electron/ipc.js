@@ -1,5 +1,9 @@
 import { err, ok } from "./result.js";
 import { parseInput, schemas } from "./validation.js";
+import {
+  getDocumentStorageFields,
+  parseWorkspaceDocumentFromRow,
+} from "./document.js";
 
 const mapProject = (row) => ({
   id: row.id,
@@ -38,26 +42,36 @@ const mapIssueComment = (row) => ({
   createdAt: row.created_at,
 });
 
-const mapWikiPage = (row) => ({
-  id: row.id,
-  projectId: row.project_id,
-  title: row.title,
-  content: row.content,
-  parentId: row.parent_id ?? null,
-  children: [],
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-  position: row.position ?? null,
-});
+const mapWikiPage = (row) => {
+  const parsed = parseWorkspaceDocumentFromRow(row);
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    title: row.title,
+    document: parsed.document,
+    contentText: parsed.contentText,
+    parentId: row.parent_id ?? null,
+    children: [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    position: row.position ?? null,
+    contentSchemaVersion: parsed.contentSchemaVersion,
+  };
+};
 
-const mapMemo = (row) => ({
-  id: row.id,
-  projectId: row.project_id,
-  title: row.title,
-  content: row.content,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at ?? null,
-});
+const mapMemo = (row) => {
+  const parsed = parseWorkspaceDocumentFromRow(row);
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    title: row.title,
+    document: parsed.document,
+    contentText: parsed.contentText,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? null,
+    contentSchemaVersion: parsed.contentSchemaVersion,
+  };
+};
 
 const mapDailyLog = (row) => ({
   id: row.id,
@@ -102,6 +116,91 @@ const withWikiSubtreeCte = (bodySql) => `
   )
   ${bodySql}
 `;
+
+const getGithubFeedbackConfig = () => {
+  const combinedRepo = process.env.WORKSPACE_GITHUB_FEEDBACK_REPO?.trim() ?? "";
+  const [combinedOwner, combinedName] = combinedRepo.split("/");
+  const owner =
+    combinedOwner?.trim() || process.env.WORKSPACE_GITHUB_FEEDBACK_OWNER?.trim() || "";
+  const repo =
+    combinedName?.trim() || process.env.WORKSPACE_GITHUB_FEEDBACK_NAME?.trim() || "";
+  const token =
+    process.env.WORKSPACE_GITHUB_TOKEN?.trim() || process.env.GITHUB_TOKEN?.trim() || "";
+
+  if (!owner || !repo || !token) {
+    return null;
+  }
+
+  const labels = (process.env.WORKSPACE_GITHUB_FEEDBACK_LABELS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return { owner, repo, token, labels };
+};
+
+const buildGithubIssueTitle = (body) => {
+  const firstLine = body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+  const normalized = (firstLine ?? "Feedback").replace(/\s+/g, " ");
+  const title = normalized.length > 80 ? `${normalized.slice(0, 77)}...` : normalized;
+  return `Feedback: ${title}`;
+};
+
+const buildGithubIssueBody = ({ body, feedbackId, createdAt }) => {
+  const createdAtIso = typeof createdAt === "number" ? new Date(createdAt).toISOString() : null;
+  const metadataLines = [
+    "_Submitted from Workspace desktop app._",
+    feedbackId ? `- Local feedback ID: \`${feedbackId}\`` : null,
+    createdAtIso ? `- Submitted at: ${createdAtIso}` : null,
+  ].filter(Boolean);
+
+  return `${metadataLines.join("\n")}\n\n---\n\n${body}`;
+};
+
+const createGithubIssueFromFeedback = async ({ body, feedbackId, createdAt }) => {
+  const config = getGithubFeedbackConfig();
+  if (!config) {
+    throw new Error(
+      "GitHub feedback integration is not configured. Set WORKSPACE_GITHUB_FEEDBACK_REPO (or owner/name), and WORKSPACE_GITHUB_TOKEN.",
+    );
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/${config.owner}/${config.repo}/issues`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${config.token}`,
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "workspace-desktop-app",
+      },
+      body: JSON.stringify({
+        title: buildGithubIssueTitle(body),
+        body: buildGithubIssueBody({ body, feedbackId, createdAt }),
+        labels: config.labels.length > 0 ? config.labels : undefined,
+      }),
+    },
+  );
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const remoteMessage =
+      payload && typeof payload.message === "string" ? payload.message : "Unknown GitHub API error";
+    throw new Error(`GitHub API ${response.status}: ${remoteMessage}`);
+  }
+
+  return {
+    number: payload?.number,
+    url: payload?.html_url,
+    title: payload?.title,
+    repository: `${config.owner}/${config.repo}`,
+  };
+};
 
 export const purgeExpiredTrash = (db, olderThan) => {
   const transaction = db.transaction(() => {
@@ -538,15 +637,19 @@ export const registerIpcHandlers = (ipcMain, db) => {
     }
     try {
       const payload = parsed.data;
+      const storage = getDocumentStorageFields(payload.document);
       db.prepare(
         `INSERT INTO wiki_pages
-          (id, project_id, title, content, parent_id, created_at, updated_at, position)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, project_id, title, content, content_json, content_text, content_schema_version, parent_id, created_at, updated_at, position)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
         payload.title,
-        payload.content,
+        storage.contentText,
+        storage.contentJson,
+        storage.contentText,
+        storage.contentSchemaVersion,
         payload.parentId ?? null,
         payload.createdAt,
         payload.updatedAt,
@@ -574,9 +677,16 @@ export const registerIpcHandlers = (ipcMain, db) => {
         fields.push("title = ?");
         values.push(updates.title);
       }
-      if (updates.content !== undefined) {
+      if (updates.document !== undefined) {
+        const storage = getDocumentStorageFields(updates.document);
         fields.push("content = ?");
-        values.push(updates.content);
+        values.push(storage.contentText);
+        fields.push("content_json = ?");
+        values.push(storage.contentJson);
+        fields.push("content_text = ?");
+        values.push(storage.contentText);
+        fields.push("content_schema_version = ?");
+        values.push(storage.contentSchemaVersion);
       }
       if (updates.parentId !== undefined) {
         fields.push("parent_id = ?");
@@ -663,15 +773,19 @@ export const registerIpcHandlers = (ipcMain, db) => {
     }
     try {
       const payload = parsed.data;
+      const storage = getDocumentStorageFields(payload.document);
       db.prepare(
         `INSERT INTO memos
-          (id, project_id, title, content, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+          (id, project_id, title, content, content_json, content_text, content_schema_version, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
         payload.title,
-        payload.content,
+        storage.contentText,
+        storage.contentJson,
+        storage.contentText,
+        storage.contentSchemaVersion,
         payload.createdAt,
         payload.updatedAt ?? null,
       );
@@ -719,6 +833,22 @@ export const registerIpcHandlers = (ipcMain, db) => {
     }
   });
 
+  ipcMain.handle("feedback:createGithubIssue", async (_event, input) => {
+    const parsed = parseInput(schemas.feedbackCreateGithubIssue, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    try {
+      const issue = await createGithubIssueFromFeedback(parsed.data);
+      return ok(issue);
+    } catch (error) {
+      return err(
+        "GITHUB_ISSUE_CREATE_FAILED",
+        error instanceof Error ? error.message : "Failed to create GitHub issue",
+      );
+    }
+  });
+
   ipcMain.handle("memos:update", (_event, input) => {
     const parsed = parseInput(schemas.memoUpdate, input);
     if (!parsed.ok) {
@@ -732,9 +862,16 @@ export const registerIpcHandlers = (ipcMain, db) => {
         fields.push("title = ?");
         values.push(updates.title);
       }
-      if (updates.content !== undefined) {
+      if (updates.document !== undefined) {
+        const storage = getDocumentStorageFields(updates.document);
         fields.push("content = ?");
-        values.push(updates.content);
+        values.push(storage.contentText);
+        fields.push("content_json = ?");
+        values.push(storage.contentJson);
+        fields.push("content_text = ?");
+        values.push(storage.contentText);
+        fields.push("content_schema_version = ?");
+        values.push(storage.contentSchemaVersion);
       }
       const updatedAt = updates.updatedAt ?? Date.now();
       fields.push("updated_at = ?");

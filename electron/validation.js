@@ -5,6 +5,68 @@ const timestampSchema = z.number().int().nonnegative();
 const dateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const issueIdSchema = z.object({ issueId: idSchema });
 const trashTypeSchema = z.enum(["wiki", "memo", "issue"]);
+const metadataValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const careerSignalSchema = z.object({
+  id: idSchema,
+  kind: z.enum([
+    "achievement",
+    "impact",
+    "skill",
+    "responsibility",
+    "learning",
+  ]),
+  label: z.string().trim().min(1),
+  evidenceBlockIds: z.array(idSchema),
+  skills: z.array(z.string().trim().min(1)).optional(),
+  metrics: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1),
+        value: z.string().trim().min(1),
+      }),
+    )
+    .optional(),
+  period: z
+    .object({
+      from: z.string().trim().min(1).optional(),
+      to: z.string().trim().min(1).optional(),
+    })
+    .optional(),
+  confidence: z.enum(["draft", "reviewed"]).optional(),
+});
+const documentNodeSchema = z.lazy(() =>
+  z
+    .object({
+      type: z.string().trim().min(1),
+      text: z.string().optional(),
+      attrs: z.record(z.any()).optional(),
+      content: z.array(documentNodeSchema).optional(),
+      marks: z
+        .array(
+          z.object({
+            type: z.string().trim().min(1),
+            attrs: z.record(z.any()).optional(),
+          }),
+        )
+        .optional(),
+    })
+    .passthrough(),
+);
+const workspaceDocumentSchema = z.object({
+  schemaVersion: z.literal(1),
+  editor: z.literal("tiptap"),
+  doc: documentNodeSchema.refine((node) => node.type === "doc", {
+    message: "Document root must be doc",
+  }),
+  metadata: z
+    .object({
+      tags: z.array(z.string().trim().min(1)).default([]),
+      properties: z.record(metadataValueSchema).optional(),
+      careerSignals: z.array(careerSignalSchema).optional(),
+      source: z.enum(["user", "migrated"]).optional(),
+    })
+    .default({ tags: [] }),
+});
 
 export const schemas = {
   feedbackCreate: z.object({
@@ -17,6 +79,11 @@ export const schemas = {
       limit: z.number().int().min(1).max(500).optional(),
     })
     .optional(),
+  feedbackCreateGithubIssue: z.object({
+    body: z.string().trim().min(1).max(1000),
+    feedbackId: idSchema.optional(),
+    createdAt: timestampSchema.optional(),
+  }),
   projectCreate: z.object({
     id: idSchema,
     name: z.string().min(1),
@@ -102,7 +169,7 @@ export const schemas = {
     id: idSchema,
     projectId: idSchema,
     title: z.string().trim().min(1),
-    content: z.string(),
+    document: workspaceDocumentSchema,
     parentId: idSchema.nullable().optional(),
     createdAt: timestampSchema,
     updatedAt: timestampSchema,
@@ -113,7 +180,7 @@ export const schemas = {
     updates: z
       .object({
         title: z.string().trim().min(1).optional(),
-        content: z.string().optional(),
+        document: workspaceDocumentSchema.optional(),
         parentId: idSchema.nullable().optional(),
         position: z.number().int().optional().nullable(),
       })
@@ -127,7 +194,7 @@ export const schemas = {
     id: idSchema,
     projectId: idSchema,
     title: z.string().min(1),
-    content: z.string(),
+    document: workspaceDocumentSchema,
     createdAt: timestampSchema,
     updatedAt: timestampSchema.nullable().optional(),
   }),
@@ -136,7 +203,7 @@ export const schemas = {
     updates: z
       .object({
         title: z.string().min(1).optional(),
-        content: z.string().optional(),
+        document: workspaceDocumentSchema.optional(),
         updatedAt: timestampSchema.nullable().optional(),
       })
       .refine((value) => Object.keys(value).length > 0, {

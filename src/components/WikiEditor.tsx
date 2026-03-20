@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { ToastAction } from "@/components/ui/toast";
+import { BlockEditor } from "@/components/editor/BlockEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,9 +39,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AppInput } from "@/components/ui/app-input";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { renderMarkdown } from "@/components/markdown/renderMarkdown";
+import { createEmptyWorkspaceDocument } from "@/lib/editor/documentSchema";
 import { WikiPage } from "@/types/workspace";
 import { toast } from "@/hooks/use-toast";
 
@@ -49,22 +49,23 @@ interface WikiTreeNode extends WikiPage {
   depth: number;
 }
 
-// Build tree structure from flat list
+type WikiPageSnapshot = Pick<
+  WikiPage,
+  "id" | "title" | "document" | "contentText" | "updatedAt" | "status"
+>;
+
 function buildWikiTree(pages: WikiPage[]): WikiTreeNode[] {
   const pageMap = new Map<string, WikiTreeNode>();
   const rootNodes: WikiTreeNode[] = [];
 
-  // Sort by position first
   const sortedPages = [...pages].sort(
     (a, b) => (a.position ?? 0) - (b.position ?? 0),
   );
 
-  // Create nodes with depth
   sortedPages.forEach((page) => {
     pageMap.set(page.id, { ...page, children: [], depth: 0 });
   });
 
-  // Build tree
   sortedPages.forEach((page) => {
     const node = pageMap.get(page.id)!;
     if (page.parentId && pageMap.has(page.parentId)) {
@@ -76,7 +77,6 @@ function buildWikiTree(pages: WikiPage[]): WikiTreeNode[] {
     }
   });
 
-  // Update depths recursively
   const updateDepths = (nodes: WikiTreeNode[], depth: number) => {
     nodes.forEach((node) => {
       node.depth = depth;
@@ -88,10 +88,9 @@ function buildWikiTree(pages: WikiPage[]): WikiTreeNode[] {
   return rootNodes;
 }
 
-// Get breadcrumb path for a page
 function getBreadcrumbPath(pageId: string, pages: WikiPage[]): WikiPage[] {
   const path: WikiPage[] = [];
-  const pageMap = new Map(pages.map((p) => [p.id, p]));
+  const pageMap = new Map(pages.map((page) => [page.id, page]));
 
   let currentId: string | null = pageId;
   while (currentId) {
@@ -107,14 +106,13 @@ function getBreadcrumbPath(pageId: string, pages: WikiPage[]): WikiPage[] {
   return path;
 }
 
-// Get all descendant IDs of a page
 function getDescendantIds(pageId: string, pages: WikiPage[]): Set<string> {
   const descendants = new Set<string>();
   const findDescendants = (id: string) => {
-    pages.forEach((p) => {
-      if (p.parentId === id) {
-        descendants.add(p.id);
-        findDescendants(p.id);
+    pages.forEach((page) => {
+      if (page.parentId === id) {
+        descendants.add(page.id);
+        findDescendants(page.id);
       }
     });
   };
@@ -128,10 +126,10 @@ interface WikiTreeItemProps {
   expandedIds: Set<string>;
   onSelect: (id: string) => void;
   onToggle: (id: string) => void;
-  onDragStart: (e: React.DragEvent, node: WikiTreeNode) => void;
-  onDragOver: (e: React.DragEvent, node: WikiTreeNode) => void;
-  onDragLeave: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent, node: WikiTreeNode) => void;
+  onDragStart: (event: React.DragEvent, node: WikiTreeNode) => void;
+  onDragOver: (event: React.DragEvent, node: WikiTreeNode) => void;
+  onDragLeave: (event: React.DragEvent) => void;
+  onDrop: (event: React.DragEvent, node: WikiTreeNode) => void;
   dragOverId: string | null;
   dropPosition: "before" | "inside" | "after" | null;
 }
@@ -172,18 +170,18 @@ function WikiTreeItem({
         )}
         style={{ paddingLeft: `${node.depth * 16 + 8}px` }}
         draggable
-        onDragStart={(e) => onDragStart(e, node)}
-        onDragOver={(e) => onDragOver(e, node)}
+        onDragStart={(event) => onDragStart(event, node)}
+        onDragOver={(event) => onDragOver(event, node)}
         onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, node)}
+        onDrop={(event) => onDrop(event, node)}
         onClick={() => onSelect(node.id)}
       >
         <GripVertical className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-grab" />
 
         {hasChildren ? (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={(event) => {
+              event.stopPropagation();
               onToggle(node.id);
             }}
             className="p-0.5 hover:bg-accent rounded"
@@ -302,6 +300,7 @@ export function WikiEditor() {
   const selectedPageId = selectedWikiPageId;
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState<WikiPageSnapshot | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState("");
@@ -311,10 +310,9 @@ export function WikiEditor() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pageSubmitLock = useRef(false);
   const pageSaveLock = useRef(false);
-  const selectedPage = projectPages.find((p) => p.id === selectedPageId);
+  const selectedPage = projectPages.find((page) => page.id === selectedPageId);
   const toggleShortcutLabel = "⌘B";
 
-  // Listen for keyboard shortcut event
   useEffect(() => {
     const handleShortcut = () => {
       setNewPageParentId(null);
@@ -388,7 +386,6 @@ export function WikiEditor() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleToggleSidebar]);
 
-  // Drag and drop state
   const [draggedNode, setDraggedNode] = useState<WikiTreeNode | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<
@@ -401,13 +398,12 @@ export function WikiEditor() {
     [selectedPageId, projectPages],
   );
 
-  // Auto-expand parents when selecting a page
   useEffect(() => {
     if (selectedPageId) {
       const path = getBreadcrumbPath(selectedPageId, projectPages);
-      const parentIds = path.slice(0, -1).map((p) => p.id);
-      setExpandedIds((prev) => {
-        const next = new Set(prev);
+      const parentIds = path.slice(0, -1).map((page) => page.id);
+      setExpandedIds((previous) => {
+        const next = new Set(previous);
         parentIds.forEach((id) => next.add(id));
         return next;
       });
@@ -428,27 +424,34 @@ export function WikiEditor() {
     }
   }, [projectPages, selectedPageId, setSelectedWikiPageId]);
 
-  // Auto-save after 2 seconds of inactivity while editing
   useEffect(() => {
-    if (!selectedPage || !isEditing || selectedPage.status !== "unsaved") {
-      return;
-    }
-    const trimmedTitle = selectedPage.title.trim();
-    if (!trimmedTitle) {
+    if (
+      !selectedPage ||
+      !isEditing ||
+      selectedPage.status !== "unsaved" ||
+      !selectedPage.title.trim()
+    ) {
       return;
     }
     const timer = setTimeout(() => {
       void saveWikiPage(selectedPage.id, {
-        title: trimmedTitle,
-        content: selectedPage.content,
+        title: selectedPage.title,
+        document: selectedPage.document,
       });
     }, 2000);
     return () => clearTimeout(timer);
   }, [isEditing, saveWikiPage, selectedPage]);
 
+  useEffect(() => {
+    if (!selectedPage || (editSnapshot && editSnapshot.id !== selectedPage.id)) {
+      setIsEditing(false);
+      setEditSnapshot(null);
+    }
+  }, [editSnapshot, selectedPage]);
+
   const handleToggle = useCallback((id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
+    setExpandedIds((previous) => {
+      const next = new Set(previous);
       if (next.has(id)) {
         next.delete(id);
       } else {
@@ -460,6 +463,14 @@ export function WikiEditor() {
 
   const handleEdit = () => {
     if (!selectedPage) return;
+    setEditSnapshot({
+      id: selectedPage.id,
+      title: selectedPage.title,
+      document: selectedPage.document,
+      contentText: selectedPage.contentText,
+      updatedAt: selectedPage.updatedAt,
+      status: selectedPage.status,
+    });
     setIsEditing(true);
   };
 
@@ -479,10 +490,11 @@ export function WikiEditor() {
     pageSaveLock.current = true;
     setIsPageSaving(true);
     setIsEditing(false);
+    setEditSnapshot(null);
     try {
       await saveWikiPage(selectedPage.id, {
         title: trimmedTitle,
-        content: selectedPage.content,
+        document: selectedPage.document,
       });
     } finally {
       setIsPageSaving(false);
@@ -491,7 +503,14 @@ export function WikiEditor() {
   };
 
   const handleCancel = () => {
+    if (selectedPage && editSnapshot && editSnapshot.id === selectedPage.id) {
+      updateWikiDraft(selectedPage.id, {
+        title: editSnapshot.title,
+        document: editSnapshot.document,
+      });
+    }
     setIsEditing(false);
+    setEditSnapshot(null);
   };
 
   const handleAddPage = async () => {
@@ -510,15 +529,15 @@ export function WikiEditor() {
     pageSubmitLock.current = true;
     setIsPageSubmitting(true);
 
-    // Calculate position for new page
-    const siblings = projectPages.filter((p) => p.parentId === newPageParentId);
-    const maxPosition = Math.max(0, ...siblings.map((s) => s.position ?? 0));
+    const siblings = projectPages.filter((page) => page.parentId === newPageParentId);
+    const maxPosition = Math.max(0, ...siblings.map((sibling) => sibling.position ?? 0));
 
     const newPage: WikiPage = {
       id: Date.now().toString(),
       projectId: selectedProjectId,
       title: trimmedTitle,
-      content: "",
+      document: createEmptyWorkspaceDocument(),
+      contentText: "",
       parentId: newPageParentId,
       children: [],
       createdAt: new Date(),
@@ -532,13 +551,20 @@ export function WikiEditor() {
       if (created) {
         setSelectedWikiPageId(created.id);
         setIsEditing(true);
+        setEditSnapshot({
+          id: created.id,
+          title: created.title,
+          document: created.document,
+          contentText: created.contentText,
+          updatedAt: created.updatedAt,
+          status: created.status,
+        });
         setNewPageTitle("");
         setNewPageParentId(null);
         setIsAddOpen(false);
 
-        // Expand parent if adding as child
         if (newPageParentId) {
-          setExpandedIds((prev) => new Set([...prev, newPageParentId]));
+          setExpandedIds((previous) => new Set([...previous, newPageParentId]));
         }
       }
     } finally {
@@ -555,13 +581,14 @@ export function WikiEditor() {
   };
 
   const handleDelete = async (pageId: string) => {
-    const page = projectPages.find((p) => p.id === pageId);
+    const page = projectPages.find((candidate) => candidate.id === pageId);
     const deleted = await deleteWikiPage(pageId);
     if (!deleted) {
       return;
     }
 
     setIsEditing(false);
+    setEditSnapshot(null);
 
     toast({
       title: "Moved to Trash",
@@ -597,26 +624,21 @@ export function WikiEditor() {
     });
   };
 
-  // Drag and Drop handlers
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, node: WikiTreeNode) => {
-      e.dataTransfer.effectAllowed = "move";
-      setDraggedNode(node);
-    },
-    [],
-  );
+  const handleDragStart = useCallback((event: React.DragEvent, node: WikiTreeNode) => {
+    event.dataTransfer.effectAllowed = "move";
+    setDraggedNode(node);
+  }, []);
 
   const handleDragOver = useCallback(
-    (e: React.DragEvent, node: WikiTreeNode) => {
-      e.preventDefault();
+    (event: React.DragEvent, node: WikiTreeNode) => {
+      event.preventDefault();
       if (!draggedNode || draggedNode.id === node.id) return;
 
-      // Don't allow dropping on descendants
       const descendants = getDescendantIds(draggedNode.id, projectPages);
       if (descendants.has(node.id)) return;
 
-      const rect = e.currentTarget.getBoundingClientRect();
-      const y = e.clientY - rect.top;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const y = event.clientY - rect.top;
       const height = rect.height;
 
       let position: "before" | "inside" | "after";
@@ -634,21 +656,19 @@ export function WikiEditor() {
     [draggedNode, projectPages],
   );
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    // Only clear if we're actually leaving the element
-    const relatedTarget = e.relatedTarget as HTMLElement | null;
-    if (!e.currentTarget.contains(relatedTarget)) {
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    const relatedTarget = event.relatedTarget as HTMLElement | null;
+    if (!event.currentTarget.contains(relatedTarget)) {
       setDragOverId(null);
       setDropPosition(null);
     }
   }, []);
 
   const handleDrop = useCallback(
-    async (e: React.DragEvent, targetNode: WikiTreeNode) => {
-      e.preventDefault();
+    async (event: React.DragEvent, targetNode: WikiTreeNode) => {
+      event.preventDefault();
       if (!draggedNode || !dropPosition) return;
 
-      // Don't allow dropping on self or descendants
       if (draggedNode.id === targetNode.id) return;
       const descendants = getDescendantIds(draggedNode.id, projectPages);
       if (descendants.has(targetNode.id)) return;
@@ -657,26 +677,22 @@ export function WikiEditor() {
       let newPosition: number;
 
       if (dropPosition === "inside") {
-        // Move as child of target
         newParentId = targetNode.id;
         const siblings = projectPages.filter(
-          (p) => p.parentId === targetNode.id,
+          (page) => page.parentId === targetNode.id,
         );
-        newPosition = Math.max(0, ...siblings.map((s) => s.position ?? 0)) + 1;
-
-        // Expand the target node
-        setExpandedIds((prev) => new Set([...prev, targetNode.id]));
+        newPosition = Math.max(0, ...siblings.map((sibling) => sibling.position ?? 0)) + 1;
+        setExpandedIds((previous) => new Set([...previous, targetNode.id]));
       } else {
-        // Move as sibling
         newParentId = targetNode.parentId;
         const siblings = projectPages
           .filter(
-            (p) =>
-              p.parentId === targetNode.parentId && p.id !== draggedNode.id,
+            (page) =>
+              page.parentId === targetNode.parentId && page.id !== draggedNode.id,
           )
           .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-        const targetIndex = siblings.findIndex((s) => s.id === targetNode.id);
+        const targetIndex = siblings.findIndex((page) => page.id === targetNode.id);
         if (dropPosition === "before") {
           newPosition =
             targetIndex > 0
@@ -741,7 +757,6 @@ export function WikiEditor() {
       )}
       onDragEnd={handleDragEnd}
     >
-      {/* Sidebar */}
       <div
         className={cn(
           "shrink-0 overflow-hidden transition-all duration-200 ease-out",
@@ -767,11 +782,11 @@ export function WikiEditor() {
                 </DialogTrigger>
                 <DialogContent
                   className="bg-popover border-border"
-                  onKeyDown={(e) => {
-                    if (e.defaultPrevented) return;
-                    if (e.key === "Enter" && !e.shiftKey) {
+                  onKeyDown={(event) => {
+                    if (event.defaultPrevented) return;
+                    if (event.key === "Enter" && !event.shiftKey) {
                       if (isPageSubmitting) return;
-                      e.preventDefault();
+                      event.preventDefault();
                       handleAddPage();
                     }
                   }}
@@ -779,7 +794,7 @@ export function WikiEditor() {
                   <DialogHeader>
                     <DialogTitle>
                       {newPageParentId
-                        ? `New Subpage of "${projectPages.find((p) => p.id === newPageParentId)?.title}"`
+                        ? `New Subpage of "${projectPages.find((page) => page.id === newPageParentId)?.title}"`
                         : "New Wiki Page"}
                     </DialogTitle>
                   </DialogHeader>
@@ -787,11 +802,11 @@ export function WikiEditor() {
                     <AppInput
                       placeholder="Page title"
                       value={newPageTitle}
-                      onChange={(e) => setNewPageTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                      onChange={(event) => setNewPageTitle(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
                           if (isPageSubmitting) return;
-                          e.preventDefault();
+                          event.preventDefault();
                           handleAddPage();
                         }
                       }}
@@ -832,8 +847,10 @@ export function WikiEditor() {
                     selectedPageId={selectedPageId}
                     expandedIds={expandedIds}
                     onSelect={(id) => {
+                      if (isEditing) {
+                        handleCancel();
+                      }
                       setSelectedWikiPageId(id);
-                      setIsEditing(false);
                     }}
                     onToggle={handleToggle}
                     onDragStart={handleDragStart}
@@ -854,7 +871,6 @@ export function WikiEditor() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 flex flex-col min-h-0">
         {!isSidebarOpen && (
           <div className="p-4 pb-0">
@@ -898,8 +914,8 @@ export function WikiEditor() {
                   <div className="w-full max-w-xl pr-4 space-y-1.5">
                     <AppInput
                       value={selectedPage.title}
-                      onChange={(e) =>
-                        updateWikiDraft(selectedPage.id, { title: e.target.value })
+                      onChange={(event) =>
+                        updateWikiDraft(selectedPage.id, { title: event.target.value })
                       }
                       className="h-8"
                       placeholder="Page title"
@@ -946,7 +962,8 @@ export function WikiEditor() {
                         disabled={
                           !selectedPage ||
                           selectedPage.status !== "unsaved" ||
-                          isPageSaving
+                          isPageSaving ||
+                          !selectedPage.title.trim()
                         }
                       >
                         <Save className="w-4 h-4 mr-1" />
@@ -1018,46 +1035,51 @@ export function WikiEditor() {
               </div>
             </div>
 
-            {isEditing ? (
-              <div className="flex-1 min-h-0 flex flex-col">
-                <Textarea
-                  value={selectedPage.content}
-                  onChange={(e) =>
-                    updateWikiDraft(selectedPage.id, { content: e.target.value })
+            <div className="flex-1 min-h-0 flex flex-col bg-background">
+              {isEditing ? (
+                <BlockEditor
+                  key={`${selectedPage.id}:edit`}
+                  value={selectedPage.document}
+                  editable
+                  autofocus
+                  className="h-full text-sm"
+                  onChange={(document) =>
+                    updateWikiDraft(selectedPage.id, { document })
                   }
-                  className="h-full min-h-0 text-sm resize-none bg-input border-border focus-visible:ring-inset focus-visible:ring-offset-0"
-                  placeholder="Write your documentation in Markdown..."
                 />
-              </div>
-            ) : (
-              <ScrollArea className="flex-1 p-6 scrollbar-thin">
-                <div className="prose dark:prose-invert max-w-none">
-                  {renderMarkdown(selectedPage.content)}
-                </div>
-              </ScrollArea>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <div className="text-center max-w-sm">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="font-mono text-lg font-bold text-primary mb-2">
-                  Your Wiki
-                </h3>
-                <p className="text-sm mb-4">
-                  Capture architecture, onboarding notes, and decisions in one
-                  place.
-                </p>
-                <Button onClick={() => setIsAddOpen(true)} variant="primary">
-                  <Plus className="w-4 h-4 mr-1" />
-                  Create Page
-                </Button>
-              </div>
+              ) : (selectedPage.contentText ?? "").trim() ? (
+                <BlockEditor
+                  key={`${selectedPage.id}:read`}
+                  value={selectedPage.document}
+                  className="h-full"
+                />
+              ) : (
+                <ScrollArea className="flex-1 p-6 scrollbar-thin">
+                  <div className="text-sm text-muted-foreground">
+                    No content yet. Click Edit to start writing this page.
+                  </div>
+                </ScrollArea>
+              )}
             </div>
           </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center max-w-sm">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <FileText className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-mono text-lg font-bold text-primary mb-2">
+                Your Wiki
+              </h3>
+              <p className="text-sm mb-4">
+                Capture architecture, onboarding notes, and decisions in one place.
+              </p>
+              <Button onClick={() => setIsAddOpen(true)} variant="primary">
+                <Plus className="w-4 h-4 mr-1" />
+                Create Page
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>

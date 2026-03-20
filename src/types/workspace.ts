@@ -1,3 +1,5 @@
+import type { WorkspaceDocument } from "@/types/document";
+
 export interface Project {
   id: string;
   name: string;
@@ -40,7 +42,8 @@ export interface WikiPage {
   id: string;
   projectId: string;
   title: string;
-  content: string;
+  document: WorkspaceDocument;
+  contentText: string;
   parentId: string | null;
   children: WikiPage[];
   createdAt: Date;
@@ -57,7 +60,8 @@ export interface Memo {
   id: string;
   projectId: string;
   title: string;
-  content: string;
+  document: WorkspaceDocument;
+  contentText: string;
   createdAt: Date;
   updatedAt: Date | null;
   status: MemoStatus;

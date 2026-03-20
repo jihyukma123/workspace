@@ -229,4 +229,17 @@ export const migrations = [
       ALTER TABLE tasks ADD COLUMN details TEXT;
     `,
   },
+  {
+    id: 11,
+    name: "document_json_content",
+    up: `
+      ALTER TABLE wiki_pages ADD COLUMN content_json TEXT;
+      ALTER TABLE wiki_pages ADD COLUMN content_text TEXT NOT NULL DEFAULT '';
+      ALTER TABLE wiki_pages ADD COLUMN content_schema_version INTEGER NOT NULL DEFAULT 1;
+
+      ALTER TABLE memos ADD COLUMN content_json TEXT;
+      ALTER TABLE memos ADD COLUMN content_text TEXT NOT NULL DEFAULT '';
+      ALTER TABLE memos ADD COLUMN content_schema_version INTEGER NOT NULL DEFAULT 1;
+    `,
+  },
 ];

@@ -1,3 +1,5 @@
+import type { WorkspaceDocument } from "@/types/document";
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string; details?: unknown } };
@@ -43,21 +45,25 @@ export type WikiPageRecord = {
   id: string;
   projectId: string;
   title: string;
-  content: string;
+  document: WorkspaceDocument;
+  contentText: string;
   parentId: string | null;
   children: [];
   createdAt: number;
   updatedAt: number;
   position: number | null;
+  contentSchemaVersion: number;
 };
 
 export type MemoRecord = {
   id: string;
   projectId: string;
   title: string;
-  content: string;
+  document: WorkspaceDocument;
+  contentText: string;
   createdAt: number;
   updatedAt: number | null;
+  contentSchemaVersion: number;
 };
 
 export type DailyLogRecord = {
@@ -88,6 +94,19 @@ export type FeedbackRecord = {
 
 export type FeedbackListInput = {
   limit?: number;
+};
+
+export type FeedbackGithubIssueCreateInput = {
+  body: string;
+  feedbackId?: string;
+  createdAt?: number;
+};
+
+export type FeedbackGithubIssueRecord = {
+  number: number;
+  url: string;
+  title: string;
+  repository: string;
 };
 
 export type TrashItemType = "wiki" | "memo" | "issue";

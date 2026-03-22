@@ -244,7 +244,7 @@ export function DailyLogView() {
 
   return (
     <div className="h-full flex flex-col p-6 overflow-hidden">
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="shrink-0">
         <div className="rounded-lg border border-border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-[14rem]">
@@ -338,8 +338,8 @@ export function DailyLogView() {
         </div>
       </div>
 
-      <div className="flex-1 pt-4 flex flex-col min-h-0">
-        <Card className="min-w-0 flex flex-col flex-1">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin pt-4 pb-6 pr-1">
+        <Card className="min-w-0 flex min-h-full flex-col">
           <CardHeader className="p-4 border-b border-border">
             <div className="flex items-center justify-between gap-3">
               <div>

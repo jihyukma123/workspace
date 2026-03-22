@@ -388,6 +388,11 @@ export const backfillLegacyDocumentColumns = (db) => {
      FROM memos
      WHERE content_json IS NULL OR TRIM(content_json) = ''`,
   );
+  const selectDailyLogRows = db.prepare(
+    `SELECT id, content, content_json, content_text, content_schema_version
+     FROM daily_logs
+     WHERE content_json IS NULL OR TRIM(content_json) = ''`,
+  );
 
   const updateWikiRow = db.prepare(
     `UPDATE wiki_pages
@@ -396,6 +401,11 @@ export const backfillLegacyDocumentColumns = (db) => {
   );
   const updateMemoRow = db.prepare(
     `UPDATE memos
+     SET content = ?, content_json = ?, content_text = ?, content_schema_version = ?
+     WHERE id = ?`,
+  );
+  const updateDailyLogRow = db.prepare(
+    `UPDATE daily_logs
      SET content = ?, content_json = ?, content_text = ?, content_schema_version = ?
      WHERE id = ?`,
   );
@@ -415,6 +425,17 @@ export const backfillLegacyDocumentColumns = (db) => {
     for (const row of selectMemoRows.all()) {
       const storage = getDocumentStorageFields(legacyMarkdownToWorkspaceDocument(row.content ?? ""));
       updateMemoRow.run(
+        storage.contentText,
+        storage.contentJson,
+        storage.contentText,
+        storage.contentSchemaVersion,
+        row.id,
+      );
+    }
+
+    for (const row of selectDailyLogRows.all()) {
+      const storage = getDocumentStorageFields(legacyMarkdownToWorkspaceDocument(row.content ?? ""));
+      updateDailyLogRow.run(
         storage.contentText,
         storage.contentJson,
         storage.contentText,

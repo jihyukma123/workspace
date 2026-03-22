@@ -73,14 +73,19 @@ const mapMemo = (row) => {
   };
 };
 
-const mapDailyLog = (row) => ({
-  id: row.id,
-  projectId: row.project_id,
-  date: row.date,
-  content: row.content,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at ?? null,
-});
+const mapDailyLog = (row) => {
+  const parsed = parseWorkspaceDocumentFromRow(row);
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    date: row.date,
+    document: parsed.document,
+    contentText: parsed.contentText,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? null,
+    contentSchemaVersion: parsed.contentSchemaVersion,
+  };
+};
 
 const mapReminder = (row) => ({
   id: row.id,
@@ -942,15 +947,19 @@ export const registerIpcHandlers = (ipcMain, db) => {
     }
     try {
       const payload = parsed.data;
+      const storage = getDocumentStorageFields(payload.document);
       db.prepare(
         `INSERT INTO daily_logs
-          (id, project_id, date, content, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+          (id, project_id, date, content, content_json, content_text, content_schema_version, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         payload.id,
         payload.projectId,
         payload.date,
-        payload.content,
+        storage.contentText,
+        storage.contentJson,
+        storage.contentText,
+        storage.contentSchemaVersion,
         payload.createdAt,
         payload.updatedAt ?? null,
       );
@@ -972,9 +981,16 @@ export const registerIpcHandlers = (ipcMain, db) => {
       const { id, updates } = parsed.data;
       const fields = [];
       const values = [];
-      if (updates.content !== undefined) {
+      if (updates.document !== undefined) {
+        const storage = getDocumentStorageFields(updates.document);
         fields.push("content = ?");
-        values.push(updates.content);
+        values.push(storage.contentText);
+        fields.push("content_json = ?");
+        values.push(storage.contentJson);
+        fields.push("content_text = ?");
+        values.push(storage.contentText);
+        fields.push("content_schema_version = ?");
+        values.push(storage.contentSchemaVersion);
       }
       const updatedAt = updates.updatedAt ?? Date.now();
       fields.push("updated_at = ?");

@@ -71,7 +71,8 @@ export interface DailyLog {
   id: string;
   projectId: string;
   date: string;
-  content: string;
+  document: WorkspaceDocument;
+  contentText: string;
   createdAt: Date;
   updatedAt: Date | null;
 }

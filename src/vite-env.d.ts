@@ -114,7 +114,7 @@ declare global {
         create: (input: DailyLogRecord) => Promise<Result<DailyLogRecord>>;
         update: (input: {
           id: string;
-          updates: Partial<Pick<DailyLogRecord, "content" | "updatedAt">>;
+          updates: Partial<Pick<DailyLogRecord, "document" | "updatedAt">>;
         }) => Promise<Result<DailyLogRecord>>;
         delete: (input: { id: string }) => Promise<Result<{ id: string }>>;
       };

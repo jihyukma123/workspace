@@ -156,7 +156,7 @@ interface WorkspaceState extends MemoState {
   addDailyLog: (log: DailyLog) => Promise<DailyLog | null>;
   updateDailyLog: (
     logId: string,
-    updates: Pick<DailyLog, "content">,
+    updates: Pick<DailyLog, "document">,
   ) => Promise<boolean>;
   deleteDailyLog: (logId: string) => Promise<boolean>;
   addReminder: (reminder: Reminder) => Promise<Reminder | null>;
@@ -277,7 +277,8 @@ const mapDailyLog = (record: DailyLogRecord): DailyLog => ({
   id: record.id,
   projectId: record.projectId,
   date: record.date,
-  content: record.content,
+  document: getIncomingDocument(record),
+  contentText: getIncomingContentText(record),
   createdAt: new Date(record.createdAt),
   updatedAt: record.updatedAt ? new Date(record.updatedAt) : null,
 });
@@ -1134,13 +1135,19 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!api) {
       return null;
     }
+    const normalizedDocument = createWorkspaceDocument(
+      log.document.doc,
+      log.document.metadata,
+    );
     const payload: DailyLogRecord = {
       id: log.id,
       projectId: log.projectId,
       date: log.date,
-      content: log.content,
+      document: normalizedDocument,
+      contentText: getPlainTextFromWorkspaceDocument(normalizedDocument),
       createdAt: log.createdAt.getTime(),
       updatedAt: log.updatedAt ? log.updatedAt.getTime() : null,
+      contentSchemaVersion: normalizedDocument.schemaVersion,
     };
     const result = await api.dailyLogs.create(payload);
     if (!result.ok) {
@@ -1160,7 +1167,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const result = await api.dailyLogs.update({
       id: logId,
       updates: {
-        content: updates.content,
+        document: createWorkspaceDocument(
+          updates.document.doc,
+          updates.document.metadata,
+        ),
         updatedAt: Date.now(),
       },
     });

@@ -215,7 +215,7 @@ export const schemas = {
     id: idSchema,
     projectId: idSchema,
     date: dateKeySchema,
-    content: z.string(),
+    document: workspaceDocumentSchema,
     createdAt: timestampSchema,
     updatedAt: timestampSchema.nullable().optional(),
   }),
@@ -223,7 +223,7 @@ export const schemas = {
     id: idSchema,
     updates: z
       .object({
-        content: z.string().optional(),
+        document: workspaceDocumentSchema.optional(),
         updatedAt: timestampSchema.nullable().optional(),
       })
       .refine((value) => Object.keys(value).length > 0, {

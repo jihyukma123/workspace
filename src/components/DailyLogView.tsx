@@ -23,7 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { BlockEditor } from "@/components/editor/BlockEditor";
+import {
+  areWorkspaceDocumentsEqual,
+  createEmptyWorkspaceDocument,
+} from "@/lib/editor/documentSchema";
+import { getPlainTextFromWorkspaceDocument } from "@/lib/editor/documentText";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 
@@ -70,7 +75,10 @@ export function DailyLogView() {
     useWorkspaceStore();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [content, setContent] = useState<string>("");
+  const [emptyDocument, setEmptyDocument] = useState(() =>
+    createEmptyWorkspaceDocument(),
+  );
+  const [document, setDocument] = useState(createEmptyWorkspaceDocument());
   const [isSaving, setIsSaving] = useState(false);
   const saveLock = useRef(false);
 
@@ -78,8 +86,6 @@ export function DailyLogView() {
   const [monthAnchor, setMonthAnchor] = useState<Date>(() =>
     startOfMonth(new Date()),
   );
-
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -99,8 +105,17 @@ export function DailyLogView() {
   );
 
   useEffect(() => {
-    setContent(selectedLog?.content ?? "");
-  }, [selectedLog?.id, selectedLog?.content, dateKey]);
+    if (selectedLog) {
+      return;
+    }
+    setEmptyDocument(createEmptyWorkspaceDocument());
+  }, [dateKey, selectedLog]);
+
+  const baselineDocument = selectedLog?.document ?? emptyDocument;
+
+  useEffect(() => {
+    setDocument(baselineDocument);
+  }, [baselineDocument]);
 
   const loggedDateKeys = useMemo(
     () => new Set(projectLogs.map((log) => log.date)),
@@ -135,7 +150,11 @@ export function DailyLogView() {
   );
 
   const isToday = isSameDay(selectedDate, new Date());
-  const hasChanges = content !== (selectedLog?.content ?? "");
+  const currentContentText = useMemo(
+    () => getPlainTextFromWorkspaceDocument(document),
+    [document],
+  );
+  const hasChanges = !areWorkspaceDocumentsEqual(document, baselineDocument);
 
   const handleGoPrevWeek = () => setSelectedDate((prev) => addDays(prev, -7));
   const handleGoNextWeek = () => setSelectedDate((prev) => addDays(prev, 7));
@@ -155,14 +174,15 @@ export function DailyLogView() {
     }
 
     setIsMonthPickerOpen(false);
-    requestAnimationFrame(() => textareaRef.current?.focus());
   };
 
   const handleSave = useCallback(async () => {
     if (!selectedProjectId) {
       return;
     }
-    if (content === (selectedLog?.content ?? "")) {
+    if (
+      areWorkspaceDocumentsEqual(document, baselineDocument)
+    ) {
       return;
     }
     if (saveLock.current) {
@@ -173,7 +193,7 @@ export function DailyLogView() {
     setIsSaving(true);
     try {
       if (selectedLog) {
-        await updateDailyLog(selectedLog.id, { content });
+        await updateDailyLog(selectedLog.id, { document });
         return;
       }
 
@@ -182,7 +202,8 @@ export function DailyLogView() {
         id: `daily-log-${now.getTime()}`,
         projectId: selectedProjectId,
         date: dateKey,
-        content,
+        document,
+        contentText: currentContentText,
         createdAt: now,
         updatedAt: null,
       });
@@ -192,11 +213,13 @@ export function DailyLogView() {
     }
   }, [
     addDailyLog,
-    content,
     dateKey,
+    document,
+    currentContentText,
     selectedLog,
     selectedProjectId,
     updateDailyLog,
+    baselineDocument,
   ]);
 
   useEffect(() => {
@@ -330,15 +353,21 @@ export function DailyLogView() {
             </div>
           </CardHeader>
           <CardContent className="p-4 flex-1 flex flex-col min-h-0">
-            <Textarea
-              ref={(node) => {
-                textareaRef.current = node;
-              }}
-              placeholder="What did you work on today?"
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              className="flex-1 h-0 resize-none bg-input border-border"
-            />
+            <div className="relative flex-1 min-h-0 rounded-md border border-border bg-input overflow-hidden">
+              {!currentContentText.trim() && (
+                <div className="pointer-events-none absolute left-4 top-4 z-10 text-sm text-muted-foreground">
+                  What did you work on today?
+                </div>
+              )}
+              <BlockEditor
+                key={dateKey}
+                value={document}
+                editable
+                autofocus
+                className="h-full text-sm"
+                onChange={setDocument}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

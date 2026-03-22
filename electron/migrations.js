@@ -242,4 +242,13 @@ export const migrations = [
       ALTER TABLE memos ADD COLUMN content_schema_version INTEGER NOT NULL DEFAULT 1;
     `,
   },
+  {
+    id: 12,
+    name: "daily_log_document_json_content",
+    up: `
+      ALTER TABLE daily_logs ADD COLUMN content_json TEXT;
+      ALTER TABLE daily_logs ADD COLUMN content_text TEXT NOT NULL DEFAULT '';
+      ALTER TABLE daily_logs ADD COLUMN content_schema_version INTEGER NOT NULL DEFAULT 1;
+    `,
+  },
 ];

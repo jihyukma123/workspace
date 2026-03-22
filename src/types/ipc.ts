@@ -70,9 +70,11 @@ export type DailyLogRecord = {
   id: string;
   projectId: string;
   date: string;
-  content: string;
+  document: WorkspaceDocument;
+  contentText: string;
   createdAt: number;
   updatedAt: number | null;
+  contentSchemaVersion: number;
 };
 
 export type ReminderRecord = {

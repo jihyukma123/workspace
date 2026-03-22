@@ -364,7 +364,7 @@ export function DailyLogView() {
                 value={document}
                 editable
                 autofocus
-                className="h-full text-sm"
+                className="h-full text-sm [&_.ProseMirror_p:first-child]:mt-0 [&_.ProseMirror_p:last-child]:mb-0"
                 onChange={setDocument}
               />
             </div>

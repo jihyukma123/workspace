@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   StickyNote,
-  Save,
   Clock,
   Plus,
-  Edit2,
-  X,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -28,17 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { createEmptyWorkspaceDocument } from "@/lib/editor/documentSchema";
-import { MemoStatus } from "@/types/workspace";
 import { toast } from "@/hooks/use-toast";
-
-type MemoSnapshot = {
-  id: string;
-  title: string;
-  document: ReturnType<typeof createEmptyWorkspaceDocument>;
-  contentText: string;
-  updatedAt: Date | null;
-  status: MemoStatus;
-};
 
 export function MemoEditor() {
   const {
@@ -50,7 +37,6 @@ export function MemoEditor() {
     addMemo,
     updateMemoDraft,
     saveMemo,
-    revertMemo,
     deleteMemo,
   } = useWorkspaceStore();
 
@@ -62,14 +48,10 @@ export function MemoEditor() {
   const activeMemo =
     projectMemos.find((memo) => memo.id === selectedMemoId) ?? null;
   const activeMemoId = activeMemo?.id ?? null;
-  const [isEditing, setIsEditing] = useState(false);
-  const [editSnapshot, setEditSnapshot] = useState<MemoSnapshot | null>(null);
   const [isMemoSubmitting, setIsMemoSubmitting] = useState(false);
-  const [isMemoSaving, setIsMemoSaving] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const memoSubmitLock = useRef(false);
-  const memoSaveLock = useRef(false);
   const toggleShortcutLabel = "⌘B";
 
   const handleToggleSidebar = useCallback(() => {
@@ -91,12 +73,6 @@ export function MemoEditor() {
   }, [selectedMemoId]);
 
   useEffect(() => {
-    if (isEditing) {
-      setIsDeleteDialogOpen(false);
-    }
-  }, [isEditing]);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!event.metaKey || event.key !== "Backspace") {
         return;
@@ -116,7 +92,7 @@ export function MemoEditor() {
         return;
       }
 
-      if (!activeMemoId || isEditing) {
+      if (!activeMemoId) {
         return;
       }
 
@@ -126,7 +102,7 @@ export function MemoEditor() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeMemoId, isEditing]);
+  }, [activeMemoId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -169,16 +145,8 @@ export function MemoEditor() {
   ]);
 
   useEffect(() => {
-    if (!activeMemo || (editSnapshot && editSnapshot.id !== activeMemo.id)) {
-      setIsEditing(false);
-      setEditSnapshot(null);
-    }
-  }, [activeMemo, editSnapshot]);
-
-  useEffect(() => {
     if (
       !activeMemo ||
-      !isEditing ||
       activeMemo.status !== "unsaved" ||
       !activeMemo.title.trim()
     ) {
@@ -192,7 +160,7 @@ export function MemoEditor() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [activeMemo, isEditing, saveMemo]);
+  }, [activeMemo, saveMemo]);
 
   const formatTime = (date: Date | null) => {
     if (!date) {
@@ -208,14 +176,6 @@ export function MemoEditor() {
       : activeMemo.status === "saving"
         ? "Saving changes..."
         : "Unsaved changes";
-
-  const saveButtonLabel = !activeMemo
-    ? "Save"
-    : activeMemo.status === "saved"
-      ? "Saved"
-      : activeMemo.status === "saving"
-        ? "Saving..."
-        : "Save";
 
   const statusDotClass = cn(
     "w-2 h-2 rounded-full transition-all duration-200",
@@ -257,71 +217,13 @@ export function MemoEditor() {
 
   handleAddMemoRef.current = handleAddMemo;
 
-  const handleEdit = () => {
-    if (!activeMemo) {
-      return;
-    }
-    setEditSnapshot({
-      id: activeMemo.id,
-      title: activeMemo.title,
-      document: activeMemo.document,
-      contentText: activeMemo.contentText,
-      updatedAt: activeMemo.updatedAt,
-      status: activeMemo.status,
-    });
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    if (activeMemo && editSnapshot && editSnapshot.id === activeMemo.id) {
-      revertMemo(activeMemo.id, editSnapshot);
-    }
-    setIsEditing(false);
-    setEditSnapshot(null);
-  };
-
-  const handleSave = async () => {
-    if (!activeMemo) {
-      return;
-    }
-    if (!activeMemo.title.trim()) {
-      toast({
-        title: "Memo title required",
-        description: "Add a title before saving this memo.",
-      });
-      return;
-    }
-    if (memoSaveLock.current) {
-      return;
-    }
-    memoSaveLock.current = true;
-    setIsMemoSaving(true);
-    setIsEditing(false);
-    setEditSnapshot(null);
-    try {
-      await saveMemo(activeMemo.id, {
-        title: activeMemo.title,
-        document: activeMemo.document,
-      });
-    } finally {
-      setIsMemoSaving(false);
-      memoSaveLock.current = false;
-    }
-  };
-
   const handleSelectMemo = (memoId: string) => {
-    if (isEditing) {
-      handleCancel();
-    }
     setSelectedMemoId(memoId);
   };
 
   const handleDelete = async () => {
     if (!activeMemo) {
       return;
-    }
-    if (isEditing) {
-      handleCancel();
     }
     const memoId = activeMemo.id;
     const memoTitle = activeMemo.title;
@@ -489,29 +391,21 @@ export function MemoEditor() {
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <StickyNote className="w-5 h-5 text-primary" />
                   </div>
-                  {isEditing ? (
-                    <div className="flex-1 min-w-0">
-                      <AppInput
-                        value={activeMemo.title}
-                        onChange={(event) =>
-                          updateMemoDraft(activeMemo.id, {
-                            title: event.target.value,
-                          })
-                        }
-                        placeholder="Memo title"
-                        className="h-9"
-                      />
-                    </div>
-                  ) : (
-                    <div className="min-w-0">
-                      <h2 className="font-mono text-lg font-bold text-primary truncate">
-                        {activeMemo.title || "Untitled Memo"}
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        Capture your thoughts instantly
-                      </p>
-                    </div>
-                  )}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <AppInput
+                      value={activeMemo.title}
+                      onChange={(event) =>
+                        updateMemoDraft(activeMemo.id, {
+                          title: event.target.value,
+                        })
+                      }
+                      placeholder="Memo title"
+                      className="h-9"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Capture your thoughts instantly
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-4 shrink-0">
@@ -524,104 +418,71 @@ export function MemoEditor() {
                     <span className={statusDotClass} />
                     <span>{statusCopy}</span>
                   </div>
-                  {isEditing ? (
-                    <>
-                      <Button variant="secondary" size="sm" onClick={handleCancel}>
-                        <X className="w-4 h-4 mr-1" />
-                        Cancel
-                      </Button>
+                  <AlertDialog
+                    open={isDeleteDialogOpen}
+                    onOpenChange={setIsDeleteDialogOpen}
+                  >
+                    <AlertDialogTrigger asChild>
                       <Button
-                        onClick={handleSave}
-                        disabled={
-                          activeMemo.status !== "unsaved" ||
-                          isMemoSaving ||
-                          !activeMemo.title.trim()
-                        }
-                        size="sm"
-                        variant="primary"
+                        variant="destructive"
+                        size="icon"
+                        aria-label="Move memo to Trash"
+                        title="Move to Trash"
                       >
-                        <Save className="w-4 h-4 mr-2" />
-                        {saveButtonLabel}
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="secondary" size="sm" onClick={handleEdit}>
-                        <Edit2 className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      <AlertDialog
-                        open={isDeleteDialogOpen}
-                        onOpenChange={setIsDeleteDialogOpen}
-                      >
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            aria-label="Move memo to Trash"
-                            title="Move to Trash"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent
-                          defaultAction="action"
-                          className="bg-popover border-border"
+                    </AlertDialogTrigger>
+                    <AlertDialogContent
+                      defaultAction="action"
+                      className="bg-popover border-border"
+                    >
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Move this memo to Trash?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You can restore it from Trash for 30 days.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className={buttonVariants({ variant: "destructive" })}
                         >
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Move this memo to Trash?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              You can restore it from Trash for 30 days.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleDelete}
-                              className={buttonVariants({ variant: "destructive" })}
-                            >
-                              Move to Trash
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </>
-                  )}
+                          Move to Trash
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>
 
-            <div className={cn("flex-1 relative min-h-0", "lg:min-h-[560px]")}>
-              <div
-                className={cn(
-                  "absolute inset-0 rounded-lg border border-border overflow-hidden bg-background",
-                  "lg:shadow-sm",
-                )}
-              >
-                {isEditing ? (
+            <div
+              className={cn(
+                "flex-1 min-h-0 rounded-lg border border-border bg-card lg:shadow-sm",
+                "lg:min-h-[560px]",
+              )}
+            >
+              <div className="flex h-full flex-col p-4">
+                <div className="relative flex-1 min-h-0 rounded-md border border-border bg-input overflow-hidden">
+                  {!activeMemo.contentText.trim() && (
+                    <div className="pointer-events-none absolute left-4 top-4 z-10 text-sm text-muted-foreground">
+                      Start writing notes…
+                    </div>
+                  )}
                   <BlockEditor
-                    key={`${activeMemo.id}:edit`}
+                    key={activeMemo.id}
                     value={activeMemo.document}
                     editable
                     autofocus
-                    className="h-full text-sm lg:text-base lg:leading-7"
+                    className="h-full text-sm [&_.ProseMirror_p:first-child]:mt-0 [&_.ProseMirror_p:last-child]:mb-0"
                     onChange={(document) =>
                       updateMemoDraft(activeMemo.id, { document })
                     }
                   />
-                ) : (activeMemo.contentText ?? "").trim() ? (
-                  <BlockEditor
-                    key={`${activeMemo.id}:read`}
-                    value={activeMemo.document}
-                    className="h-full text-sm lg:text-base lg:leading-7"
-                  />
-                ) : (
-                  <div className="h-full w-full overflow-y-auto p-4 scrollbar-thin text-sm text-muted-foreground lg:text-base lg:leading-7">
-                    No content yet. Click Edit to add your notes.
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 

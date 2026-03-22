@@ -5,9 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Edit2,
-  Save,
-  X,
   Trash2,
   Clock,
   GripVertical,
@@ -48,11 +45,6 @@ interface WikiTreeNode extends WikiPage {
   children: WikiTreeNode[];
   depth: number;
 }
-
-type WikiPageSnapshot = Pick<
-  WikiPage,
-  "id" | "title" | "document" | "contentText" | "updatedAt" | "status"
->;
 
 function buildWikiTree(pages: WikiPage[]): WikiTreeNode[] {
   const pageMap = new Map<string, WikiTreeNode>();
@@ -299,17 +291,13 @@ export function WikiEditor() {
 
   const selectedPageId = selectedWikiPageId;
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [isEditing, setIsEditing] = useState(false);
-  const [editSnapshot, setEditSnapshot] = useState<WikiPageSnapshot | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState("");
   const [newPageParentId, setNewPageParentId] = useState<string | null>(null);
   const [isPageSubmitting, setIsPageSubmitting] = useState(false);
-  const [isPageSaving, setIsPageSaving] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pageSubmitLock = useRef(false);
-  const pageSaveLock = useRef(false);
   const selectedPage = projectPages.find((page) => page.id === selectedPageId);
   const toggleShortcutLabel = "⌘B";
 
@@ -326,12 +314,6 @@ export function WikiEditor() {
   useEffect(() => {
     setIsDeleteDialogOpen(false);
   }, [selectedPageId]);
-
-  useEffect(() => {
-    if (isEditing) {
-      setIsDeleteDialogOpen(false);
-    }
-  }, [isEditing]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -353,7 +335,7 @@ export function WikiEditor() {
         return;
       }
 
-      if (!selectedPageId || !selectedPage || isEditing || isAddOpen) {
+      if (!selectedPageId || !selectedPage || isAddOpen) {
         return;
       }
 
@@ -363,7 +345,7 @@ export function WikiEditor() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isAddOpen, isEditing, selectedPage, selectedPageId]);
+  }, [isAddOpen, selectedPage, selectedPageId]);
 
   const handleToggleSidebar = useCallback(() => {
     setIsSidebarOpen((previous) => !previous);
@@ -427,7 +409,6 @@ export function WikiEditor() {
   useEffect(() => {
     if (
       !selectedPage ||
-      !isEditing ||
       selectedPage.status !== "unsaved" ||
       !selectedPage.title.trim()
     ) {
@@ -440,14 +421,7 @@ export function WikiEditor() {
       });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [isEditing, saveWikiPage, selectedPage]);
-
-  useEffect(() => {
-    if (!selectedPage || (editSnapshot && editSnapshot.id !== selectedPage.id)) {
-      setIsEditing(false);
-      setEditSnapshot(null);
-    }
-  }, [editSnapshot, selectedPage]);
+  }, [saveWikiPage, selectedPage]);
 
   const handleToggle = useCallback((id: string) => {
     setExpandedIds((previous) => {
@@ -460,58 +434,6 @@ export function WikiEditor() {
       return next;
     });
   }, []);
-
-  const handleEdit = () => {
-    if (!selectedPage) return;
-    setEditSnapshot({
-      id: selectedPage.id,
-      title: selectedPage.title,
-      document: selectedPage.document,
-      contentText: selectedPage.contentText,
-      updatedAt: selectedPage.updatedAt,
-      status: selectedPage.status,
-    });
-    setIsEditing(true);
-  };
-
-  const handleSave = async () => {
-    if (!selectedPage) return;
-    if (pageSaveLock.current) return;
-
-    const trimmedTitle = selectedPage.title.trim();
-    if (!trimmedTitle) {
-      toast({
-        title: "Page title required",
-        description: "Add a title before saving this wiki page.",
-      });
-      return;
-    }
-
-    pageSaveLock.current = true;
-    setIsPageSaving(true);
-    setIsEditing(false);
-    setEditSnapshot(null);
-    try {
-      await saveWikiPage(selectedPage.id, {
-        title: trimmedTitle,
-        document: selectedPage.document,
-      });
-    } finally {
-      setIsPageSaving(false);
-      pageSaveLock.current = false;
-    }
-  };
-
-  const handleCancel = () => {
-    if (selectedPage && editSnapshot && editSnapshot.id === selectedPage.id) {
-      updateWikiDraft(selectedPage.id, {
-        title: editSnapshot.title,
-        document: editSnapshot.document,
-      });
-    }
-    setIsEditing(false);
-    setEditSnapshot(null);
-  };
 
   const handleAddPage = async () => {
     if (!selectedProjectId) return;
@@ -550,15 +472,6 @@ export function WikiEditor() {
       const created = await addWikiPage(newPage);
       if (created) {
         setSelectedWikiPageId(created.id);
-        setIsEditing(true);
-        setEditSnapshot({
-          id: created.id,
-          title: created.title,
-          document: created.document,
-          contentText: created.contentText,
-          updatedAt: created.updatedAt,
-          status: created.status,
-        });
         setNewPageTitle("");
         setNewPageParentId(null);
         setIsAddOpen(false);
@@ -586,9 +499,6 @@ export function WikiEditor() {
     if (!deleted) {
       return;
     }
-
-    setIsEditing(false);
-    setEditSnapshot(null);
 
     toast({
       title: "Moved to Trash",
@@ -733,14 +643,6 @@ export function WikiEditor() {
         ? "Saving changes..."
         : "Unsaved changes";
 
-  const saveButtonLabel = !selectedPage
-    ? "Save"
-    : selectedPage.status === "saved"
-      ? "Saved"
-      : selectedPage.status === "saving"
-        ? "Saving..."
-        : "Save";
-
   const statusDotClass = cn(
     "w-2 h-2 rounded-full transition-all duration-200",
     selectedPage?.status === "saved" && "bg-status-done",
@@ -846,12 +748,7 @@ export function WikiEditor() {
                     node={node}
                     selectedPageId={selectedPageId}
                     expandedIds={expandedIds}
-                    onSelect={(id) => {
-                      if (isEditing) {
-                        handleCancel();
-                      }
-                      setSelectedWikiPageId(id);
-                    }}
+                    onSelect={setSelectedWikiPageId}
                     onToggle={handleToggle}
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}
@@ -891,175 +788,104 @@ export function WikiEditor() {
         )}
         {selectedPage ? (
           <>
-            <div
-              className={
-                isEditing
-                  ? "px-4 py-2.5 border-b border-border"
-                  : "p-4 border-b border-border"
-              }
-            >
-              {!isEditing && (
-                <Breadcrumb
-                  path={breadcrumbPath}
-                  onNavigate={(pageId) => {
-                    if (pageId) {
-                      setSelectedWikiPageId(pageId);
-                      setIsEditing(false);
-                    }
-                  }}
-                />
-              )}
+            <div className="px-4 py-2.5 border-b border-border">
+              <Breadcrumb
+                path={breadcrumbPath}
+                onNavigate={setSelectedWikiPageId}
+              />
               <div className="flex items-center justify-between">
-                {isEditing ? (
-                  <div className="w-full max-w-xl pr-4 space-y-1.5">
-                    <AppInput
-                      value={selectedPage.title}
-                      onChange={(event) =>
-                        updateWikiDraft(selectedPage.id, { title: event.target.value })
-                      }
-                      className="h-8"
-                      placeholder="Page title"
-                    />
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>
-                        Updated <RelativeTime date={selectedPage.updatedAt} />
-                      </span>
-                      <span className={statusDotClass} />
-                      <span>{statusCopy}</span>
-                    </div>
+                <div className="w-full max-w-xl pr-4 space-y-1.5">
+                  <AppInput
+                    value={selectedPage.title}
+                    onChange={(event) =>
+                      updateWikiDraft(selectedPage.id, { title: event.target.value })
+                    }
+                    className="h-8"
+                    placeholder="Page title"
+                  />
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      Updated <RelativeTime date={selectedPage.updatedAt} />
+                    </span>
+                    <span className={statusDotClass} />
+                    <span>{statusCopy}</span>
                   </div>
-                ) : (
-                  <div>
-                    <h2 className="font-mono text-lg font-bold text-primary">
-                      {selectedPage.title}
-                    </h2>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>
-                        Updated <RelativeTime date={selectedPage.updatedAt} />
-                      </span>
-                      <span className={statusDotClass} />
-                      <span>{statusCopy}</span>
-                    </div>
-                  </div>
-                )}
+                </div>
                 <div className="flex items-center gap-2">
-                  {isEditing ? (
-                    <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleAddChildPage}
+                    title="Add Subpage"
+                  >
+                    <FolderPlus className="w-4 h-4 mr-1" />
+                    Subpage
+                  </Button>
+                  <AlertDialog
+                    open={isDeleteDialogOpen}
+                    onOpenChange={setIsDeleteDialogOpen}
+                  >
+                    <AlertDialogTrigger asChild>
                       <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleCancel}
+                        variant="destructive"
+                        size="icon"
+                        aria-label="Move wiki page to Trash"
+                        title="Move to Trash"
                       >
-                        <X className="w-4 h-4 mr-1" />
-                        Cancel
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSave}
-                        variant="primary"
-                        disabled={
-                          !selectedPage ||
-                          selectedPage.status !== "unsaved" ||
-                          isPageSaving ||
-                          !selectedPage.title.trim()
-                        }
-                      >
-                        <Save className="w-4 h-4 mr-1" />
-                        {saveButtonLabel}
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleAddChildPage}
-                        title="Add Subpage"
-                      >
-                        <FolderPlus className="w-4 h-4 mr-1" />
-                        Subpage
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleEdit}
-                      >
-                        <Edit2 className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      <AlertDialog
-                        open={isDeleteDialogOpen}
-                        onOpenChange={setIsDeleteDialogOpen}
-                      >
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            aria-label="Move wiki page to Trash"
-                            title="Move to Trash"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent
-                          defaultAction="action"
-                          className="bg-popover border-border"
+                    </AlertDialogTrigger>
+                    <AlertDialogContent
+                      defaultAction="action"
+                      className="bg-popover border-border"
+                    >
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Move this page to Trash?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This page and its subpages can be restored from
+                          Trash for 30 days.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(selectedPage.id)}
+                          className={buttonVariants({
+                            variant: "destructive",
+                          })}
                         >
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Move this page to Trash?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This page and its subpages can be restored from
-                              Trash for 30 days.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(selectedPage.id)}
-                              className={buttonVariants({
-                                variant: "destructive",
-                              })}
-                            >
-                              Move to Trash
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </>
-                  )}
+                          Move to Trash
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 flex flex-col bg-background">
-              {isEditing ? (
-                <BlockEditor
-                  key={`${selectedPage.id}:edit`}
-                  value={selectedPage.document}
-                  editable
-                  autofocus
-                  className="h-full text-sm"
-                  onChange={(document) =>
-                    updateWikiDraft(selectedPage.id, { document })
-                  }
-                />
-              ) : (selectedPage.contentText ?? "").trim() ? (
-                <BlockEditor
-                  key={`${selectedPage.id}:read`}
-                  value={selectedPage.document}
-                  className="h-full"
-                />
-              ) : (
-                <ScrollArea className="flex-1 p-6 scrollbar-thin">
-                  <div className="text-sm text-muted-foreground">
-                    No content yet. Click Edit to start writing this page.
-                  </div>
-                </ScrollArea>
-              )}
+            <div className="flex-1 min-h-0 bg-card">
+              <div className="flex h-full flex-col p-4">
+                <div className="relative flex-1 min-h-0 rounded-md border border-border bg-input overflow-hidden">
+                  {!selectedPage.contentText.trim() && (
+                    <div className="pointer-events-none absolute left-4 top-4 z-10 text-sm text-muted-foreground">
+                      Start writing this page…
+                    </div>
+                  )}
+                  <BlockEditor
+                    key={selectedPage.id}
+                    value={selectedPage.document}
+                    editable
+                    autofocus
+                    className="h-full text-sm [&_.ProseMirror_p:first-child]:mt-0 [&_.ProseMirror_p:last-child]:mb-0"
+                    onChange={(document) =>
+                      updateWikiDraft(selectedPage.id, { document })
+                    }
+                  />
+                </div>
+              </div>
             </div>
           </>
         ) : (

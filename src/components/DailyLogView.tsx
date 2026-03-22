@@ -75,10 +75,13 @@ export function DailyLogView() {
     useWorkspaceStore();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [draft, setDraft] = useState(() => ({
+    dateKey: formatDateKey(new Date()),
+    document: createEmptyWorkspaceDocument(),
+  }));
   const [emptyDocument, setEmptyDocument] = useState(() =>
     createEmptyWorkspaceDocument(),
   );
-  const [document, setDocument] = useState(createEmptyWorkspaceDocument());
   const [isSaving, setIsSaving] = useState(false);
   const saveLock = useRef(false);
 
@@ -112,10 +115,15 @@ export function DailyLogView() {
   }, [dateKey, selectedLog]);
 
   const baselineDocument = selectedLog?.document ?? emptyDocument;
+  const document =
+    draft.dateKey === dateKey ? draft.document : baselineDocument;
 
   useEffect(() => {
-    setDocument(baselineDocument);
-  }, [baselineDocument]);
+    setDraft({
+      dateKey,
+      document: baselineDocument,
+    });
+  }, [baselineDocument, dateKey]);
 
   const loggedDateKeys = useMemo(
     () => new Set(projectLogs.map((log) => log.date)),
@@ -360,12 +368,15 @@ export function DailyLogView() {
                 </div>
               )}
               <BlockEditor
-                key={dateKey}
                 value={document}
                 editable
                 autofocus
                 className="h-full text-sm [&_.ProseMirror_p:first-child]:mt-0 [&_.ProseMirror_p:last-child]:mb-0"
-                onChange={setDocument}
+                onChange={(nextDocument) =>
+                  setDraft({
+                    dateKey,
+                    document: nextDocument,
+                  })}
               />
             </div>
           </CardContent>

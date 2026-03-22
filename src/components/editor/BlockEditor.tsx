@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { cn } from "@/lib/utils";
 import { createWorkspaceDocument } from "@/lib/editor/documentSchema";
@@ -22,6 +22,11 @@ export function BlockEditor({
   onChange,
 }: BlockEditorProps) {
   const extensions = useMemo(() => createWorkspaceTiptapExtensions(), []);
+  const metadataRef = useRef(value.metadata);
+
+  useEffect(() => {
+    metadataRef.current = value.metadata;
+  }, [value.metadata]);
 
   const editor = useEditor(
     {
@@ -30,7 +35,9 @@ export function BlockEditor({
       editable,
       autofocus,
       onUpdate: ({ editor: nextEditor }) => {
-        onChange?.(createWorkspaceDocument(nextEditor.getJSON(), value.metadata));
+        onChange?.(
+          createWorkspaceDocument(nextEditor.getJSON(), metadataRef.current),
+        );
       },
     },
     [editable, autofocus],
@@ -42,6 +49,19 @@ export function BlockEditor({
     }
     editor.setEditable(editable);
   }, [editable, editor]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const currentDoc = editor.getJSON();
+    if (JSON.stringify(currentDoc) === JSON.stringify(value.doc)) {
+      return;
+    }
+
+    editor.commands.setContent(value.doc, { emitUpdate: false });
+  }, [editor, value]);
 
   if (!editor) {
     return (

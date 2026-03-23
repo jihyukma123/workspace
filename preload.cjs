@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld("workspaceApi", {
     list: (input) => invoke("feedback:list", input),
     createGithubIssue: (input) => invoke("feedback:createGithubIssue", input),
   },
+  assistant: {
+    chatWeeklySummary: (input) => invoke("assistant:chatWeeklySummary", input),
+  },
   trash: {
     list: (input) => invoke("trash:list", input),
     restore: (input) => invoke("trash:restore", input),

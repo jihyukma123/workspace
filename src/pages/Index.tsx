@@ -6,10 +6,11 @@ import { WikiEditor } from "@/components/WikiEditor";
 import { MemoEditor } from "@/components/MemoEditor";
 import { IssuesView } from "@/components/IssuesView";
 import { DailyLogView } from "@/components/DailyLogView";
+import { AssistantPanel } from "@/components/AssistantPanel";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { Issue, Task } from "@/types/workspace";
 import {
   Dialog,
@@ -61,6 +62,7 @@ const Index = () => {
   const [isIssueSubmitting, setIsIssueSubmitting] = useState(false);
   const issueSubmitLock = useRef(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   // Keyboard shortcut handlers
   const handleNewItem = useCallback(() => {
@@ -86,6 +88,7 @@ const Index = () => {
   useKeyboardShortcuts({
     onNewItem: handleNewItem,
     onShowHelp: () => setIsHelpModalOpen(true),
+    onOpenAssistant: () => setIsAssistantOpen(true),
     enabled: !!selectedProjectId,
   });
 
@@ -234,6 +237,15 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="px-4"
+                onClick={() => setIsAssistantOpen(true)}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="text-sm font-medium">Assistant</span>
+              </Button>
               {/* Add Task */}
               {activeTab === "kanban" && (
                 <>
@@ -439,6 +451,10 @@ const Index = () => {
       <KeyboardShortcutsModal
         open={isHelpModalOpen}
         onOpenChange={setIsHelpModalOpen}
+      />
+      <AssistantPanel
+        open={isAssistantOpen}
+        onOpenChange={setIsAssistantOpen}
       />
     </MainLayout>
   );

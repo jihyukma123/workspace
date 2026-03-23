@@ -3,12 +3,14 @@ import { useEffect, useCallback } from "react";
 interface KeyboardShortcutsOptions {
   onNewItem?: () => void;
   onShowHelp?: () => void;
+  onOpenAssistant?: () => void;
   enabled?: boolean;
 }
 
 export function useKeyboardShortcuts({
   onNewItem,
   onShowHelp,
+  onOpenAssistant,
   enabled = true,
 }: KeyboardShortcutsOptions) {
   const handleKeyDown = useCallback(
@@ -29,6 +31,13 @@ export function useKeyboardShortcuts({
         return;
       }
 
+      // Cmd/Ctrl + K: Open assistant
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        onOpenAssistant?.();
+        return;
+      }
+
       // Don't process other shortcuts while editing
       if (isEditable) return;
 
@@ -39,7 +48,7 @@ export function useKeyboardShortcuts({
         return;
       }
     },
-    [enabled, onNewItem, onShowHelp],
+    [enabled, onNewItem, onOpenAssistant, onShowHelp],
   );
 
   useEffect(() => {
@@ -50,6 +59,7 @@ export function useKeyboardShortcuts({
 
 export const KEYBOARD_SHORTCUTS = [
   { keys: ["⌘", "N"], description: "새 항목 생성 (Task/Issue/Wiki)" },
+  { keys: ["⌘", "K"], description: "Workspace Assistant 열기" },
   { keys: ["⌘", "B"], description: "Wiki/Memo 왼쪽 패널 토글" },
   { keys: ["⌘", "1"], description: "상단 메뉴 1번 (Kanban)" },
   { keys: ["⌘", "2"], description: "상단 메뉴 2번 (Wiki)" },

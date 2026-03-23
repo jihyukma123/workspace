@@ -111,6 +111,21 @@ export type FeedbackGithubIssueRecord = {
   repository: string;
 };
 
+export type AssistantWeeklySummaryInput = {
+  projectId: string;
+  prompt: string;
+  threadId?: string;
+};
+
+export type AssistantWeeklySummaryRecord = {
+  threadId: string | null;
+  response: string;
+  weekStart: string;
+  weekEnd: string;
+  logCount: number;
+  projectName: string | null;
+};
+
 export type TrashItemType = "wiki" | "memo" | "issue";
 
 export type TrashListInput = {

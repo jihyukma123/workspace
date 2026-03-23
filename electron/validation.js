@@ -231,6 +231,11 @@ export const schemas = {
       }),
   }),
   dailyLogDelete: z.object({ id: idSchema }),
+  assistantWeeklySummary: z.object({
+    projectId: idSchema,
+    prompt: z.string().trim().min(1).max(4000),
+    threadId: z.string().trim().min(1).max(200).optional(),
+  }),
   reminderCreate: z.object({
     id: idSchema,
     projectId: idSchema,

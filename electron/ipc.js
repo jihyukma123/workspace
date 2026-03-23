@@ -4,6 +4,7 @@ import {
   getDocumentStorageFields,
   parseWorkspaceDocumentFromRow,
 } from "./document.js";
+import { summarizeWeeklyDailyLogs } from "./assistant.js";
 
 const mapProject = (row) => ({
   id: row.id,
@@ -252,6 +253,27 @@ export const purgeExpiredTrash = (db, olderThan) => {
 };
 
 export const registerIpcHandlers = (ipcMain, db) => {
+  ipcMain.handle("assistant:chatWeeklySummary", async (_event, input) => {
+    const parsed = parseInput(schemas.assistantWeeklySummary, input);
+    if (!parsed.ok) {
+      return parsed;
+    }
+
+    try {
+      const result = await summarizeWeeklyDailyLogs({
+        db,
+        projectId: parsed.data.projectId,
+        prompt: parsed.data.prompt,
+        threadId: parsed.data.threadId,
+      });
+      return ok(result);
+    } catch (error) {
+      return err("ASSISTANT_ERROR", "Failed to summarize weekly daily logs", {
+        message: error instanceof Error ? error.message : "Unknown assistant error",
+      });
+    }
+  });
+
   ipcMain.handle("projects:list", () => {
     try {
       const rows = db

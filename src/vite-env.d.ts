@@ -14,6 +14,8 @@ import type {
   FeedbackListInput,
   FeedbackGithubIssueCreateInput,
   FeedbackGithubIssueRecord,
+  AssistantWeeklySummaryInput,
+  AssistantWeeklySummaryRecord,
   TrashListInput,
   TrashItemRecord,
   TrashActionInput,
@@ -137,6 +139,11 @@ declare global {
         createGithubIssue: (
           input: FeedbackGithubIssueCreateInput,
         ) => Promise<Result<FeedbackGithubIssueRecord>>;
+      };
+      assistant: {
+        chatWeeklySummary: (
+          input: AssistantWeeklySummaryInput,
+        ) => Promise<Result<AssistantWeeklySummaryRecord>>;
       };
       trash: {
         list: (input: TrashListInput) => Promise<Result<TrashItemRecord[]>>;

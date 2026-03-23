@@ -183,31 +183,47 @@ export function AppSidebar() {
       setFeedbackError("Please enter your feedback.");
       return;
     }
-    if (!window.workspaceApi?.feedback?.create) {
+    if (
+      !window.workspaceApi?.feedback?.create ||
+      !window.workspaceApi?.feedback?.createGithubIssue
+    ) {
       setFeedbackError("Feedback service is unavailable.");
       return;
     }
     setFeedbackError("");
     setIsFeedbackSubmitting(true);
     try {
+      const feedbackId = getFeedbackId();
+      const createdAt = Date.now();
       const result = await window.workspaceApi.feedback.create({
-        id: getFeedbackId(),
+        id: feedbackId,
         body: trimmed,
-        createdAt: Date.now(),
+        createdAt,
       });
       if (result.ok === false) {
         setFeedbackError(result.error.message || "Failed to save feedback.");
         return;
       }
+
+      const issueResult = await window.workspaceApi.feedback.createGithubIssue({
+        body: trimmed,
+        feedbackId,
+        createdAt,
+      });
+      if (issueResult.ok === false) {
+        setFeedbackError(issueResult.error.message || "Failed to create GitHub issue.");
+        return;
+      }
+
       setFeedbackText("");
       setIsFeedbackOpen(false);
       toast({
         title: "Thanks for the feedback.",
-        description: "Your note was saved locally.",
+        description: `GitHub issue #${issueResult.data.number} was created.`,
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Failed to save feedback.";
+        error instanceof Error ? error.message : "Failed to submit feedback.";
       setFeedbackError(message);
     } finally {
       setIsFeedbackSubmitting(false);

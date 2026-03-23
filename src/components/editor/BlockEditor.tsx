@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { cn } from "@/lib/utils";
-import { createWorkspaceDocument } from "@/lib/editor/documentSchema";
+import {
+  areWorkspaceDocumentsEqual,
+  createWorkspaceDocument,
+} from "@/lib/editor/documentSchema";
 import { createWorkspaceTiptapExtensions } from "@/lib/editor/tiptapExtensions";
 import { handleBlockEditorKeydown } from "@/components/editor/blockEditorKeydown";
 import type { WorkspaceDocument } from "@/types/document";
@@ -55,8 +58,11 @@ export function BlockEditor({
       return;
     }
 
-    const currentDoc = editor.getJSON();
-    if (JSON.stringify(currentDoc) === JSON.stringify(value.doc)) {
+    const currentValue = createWorkspaceDocument(
+      editor.getJSON(),
+      metadataRef.current,
+    );
+    if (areWorkspaceDocumentsEqual(currentValue, value)) {
       return;
     }
 

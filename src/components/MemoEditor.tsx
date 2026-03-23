@@ -52,7 +52,7 @@ export function MemoEditor() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const memoSubmitLock = useRef(false);
-  const toggleShortcutLabel = "⌘B";
+  const toggleShortcutLabel = "⌘⇧B";
 
   const handleToggleSidebar = useCallback(() => {
     setIsSidebarOpen((previous) => !previous);
@@ -106,7 +106,7 @@ export function MemoEditor() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || !event.shiftKey) {
         return;
       }
       if (event.repeat || event.key.toLowerCase() !== "b") {

@@ -85,4 +85,72 @@ describe("BlockEditor", () => {
 
     expect(mockEditor.commands.setContent).not.toHaveBeenCalled();
   });
+
+  it("does not rewrite editor content when attrs have the same values in a different order", () => {
+    const value = createWorkspaceDocument({
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          attrs: {
+            checked: false,
+            blockId: "blk_task_list",
+          },
+          content: [
+            {
+              type: "taskItem",
+              attrs: {
+                checked: false,
+                blockId: "blk_task_item",
+              },
+              content: [
+                {
+                  type: "paragraph",
+                  attrs: {
+                    blockId: "blk_paragraph",
+                  },
+                  content: [{ type: "text", text: "same item" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    mockEditor.getJSON.mockReturnValue({
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          attrs: {
+            blockId: "blk_task_list",
+            checked: false,
+          },
+          content: [
+            {
+              type: "taskItem",
+              attrs: {
+                blockId: "blk_task_item",
+                checked: false,
+              },
+              content: [
+                {
+                  type: "paragraph",
+                  attrs: {
+                    blockId: "blk_paragraph",
+                  },
+                  content: [{ type: "text", text: "same item" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<BlockEditor value={value} editable />);
+
+    expect(mockEditor.commands.setContent).not.toHaveBeenCalled();
+  });
 });

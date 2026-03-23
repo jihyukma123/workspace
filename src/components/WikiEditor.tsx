@@ -299,7 +299,7 @@ export function WikiEditor() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pageSubmitLock = useRef(false);
   const selectedPage = projectPages.find((page) => page.id === selectedPageId);
-  const toggleShortcutLabel = "⌘B";
+  const toggleShortcutLabel = "⌘⇧B";
 
   useEffect(() => {
     const handleShortcut = () => {
@@ -353,7 +353,7 @@ export function WikiEditor() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || !event.shiftKey) {
         return;
       }
       if (event.repeat || event.key.toLowerCase() !== "b") {

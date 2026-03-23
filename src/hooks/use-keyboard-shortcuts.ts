@@ -60,7 +60,7 @@ export function useKeyboardShortcuts({
 export const KEYBOARD_SHORTCUTS = [
   { keys: ["⌘", "N"], description: "새 항목 생성 (Task/Issue/Wiki)" },
   { keys: ["⌘", "K"], description: "Workspace Assistant 열기" },
-  { keys: ["⌘", "B"], description: "Wiki/Memo 왼쪽 패널 토글" },
+  { keys: ["⌘", "⇧", "B"], description: "Wiki/Memo 왼쪽 패널 토글" },
   { keys: ["⌘", "1"], description: "상단 메뉴 1번 (Kanban)" },
   { keys: ["⌘", "2"], description: "상단 메뉴 2번 (Wiki)" },
   { keys: ["⌘", "3"], description: "상단 메뉴 3번 (Memo)" },

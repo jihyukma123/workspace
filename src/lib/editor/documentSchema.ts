@@ -104,6 +104,43 @@ function normalizeDoc(doc?: JSONContent | null): JSONContent {
   return nextDoc;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function areJsonValuesEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+      return false;
+    }
+
+    return left.every((item, index) => areJsonValuesEqual(item, right[index]));
+  }
+
+  if (isPlainObject(left) || isPlainObject(right)) {
+    if (!isPlainObject(left) || !isPlainObject(right)) {
+      return false;
+    }
+
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+
+    return leftKeys.every((key) =>
+      Object.prototype.hasOwnProperty.call(right, key) &&
+      areJsonValuesEqual(left[key], right[key])
+    );
+  }
+
+  return false;
+}
+
 export function createWorkspaceDocument(
   doc?: JSONContent | null,
   metadata?: Partial<DocumentMetadata> | null,
@@ -124,5 +161,10 @@ export function areWorkspaceDocumentsEqual(
   left: WorkspaceDocument,
   right: WorkspaceDocument,
 ) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return (
+    left.schemaVersion === right.schemaVersion &&
+    left.editor === right.editor &&
+    areJsonValuesEqual(left.doc, right.doc) &&
+    areJsonValuesEqual(left.metadata, right.metadata)
+  );
 }

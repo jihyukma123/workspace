@@ -42,12 +42,13 @@ export function TabNavigation() {
         {tabOrder.map((tabId) => {
           const meta = tabMeta[tabId];
           const Icon = meta.icon;
-          const isActive = activeTab === tabId;
+          const resolvedTabId = tabId === "board" ? "kanban" : tabId;
+          const isActive = activeTab === resolvedTabId;
 
           return (
             <Button
               key={tabId}
-              onClick={() => setActiveTab(tabId)}
+              onClick={() => setActiveTab(resolvedTabId)}
               className={cn(
                 "h-auto gap-2 px-4 py-2.5",
                 isActive && "text-primary border-primary",

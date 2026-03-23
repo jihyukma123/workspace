@@ -25,20 +25,14 @@ function createEditor({
   textBefore = "",
   depth = 0,
   ancestorTypeNames = [],
-  canSinkListItem = false,
-  canLiftListItem = false,
 }: {
   textBefore?: string;
   depth?: number;
   ancestorTypeNames?: string[];
-  canSinkListItem?: boolean;
-  canLiftListItem?: boolean;
 }) {
   const chain = wireChain(createChain());
 
   const updateAttributes = vi.fn();
-  const sinkListItem = vi.fn(() => true);
-  const liftListItem = vi.fn(() => true);
 
   const editor = {
     state: {
@@ -60,18 +54,12 @@ function createEditor({
       },
     },
     chain: vi.fn(() => chain),
-    can: vi.fn(() => ({
-      sinkListItem: vi.fn(() => canSinkListItem),
-      liftListItem: vi.fn(() => canLiftListItem),
-    })),
     commands: {
       updateAttributes,
-      sinkListItem,
-      liftListItem,
     },
   };
 
-  return { editor, chain, updateAttributes, sinkListItem, liftListItem };
+  return { editor, chain, updateAttributes };
 }
 
 describe("handleBlockEditorKeydown", () => {
@@ -109,11 +97,10 @@ describe("handleBlockEditorKeydown", () => {
     expect(updateAttributes).toHaveBeenCalledWith("taskItem", { checked: true });
   });
 
-  it("uses Tab to nest a bullet list item", () => {
-    const { editor, sinkListItem } = createEditor({
+  it("leaves Tab indentation to the TipTap list keymap", () => {
+    const { editor } = createEditor({
       depth: 1,
       ancestorTypeNames: ["listItem"],
-      canSinkListItem: true,
     });
     const preventDefault = vi.fn();
 
@@ -123,16 +110,14 @@ describe("handleBlockEditorKeydown", () => {
       { key: "Tab", preventDefault },
     );
 
-    expect(handled).toBe(true);
-    expect(preventDefault).toHaveBeenCalledOnce();
-    expect(sinkListItem).toHaveBeenCalledWith("listItem");
+    expect(handled).toBe(false);
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 
-  it("uses Shift+Tab to lift a nested list item", () => {
-    const { editor, liftListItem } = createEditor({
+  it("leaves Shift+Tab indentation to the TipTap list keymap", () => {
+    const { editor } = createEditor({
       depth: 1,
       ancestorTypeNames: ["listItem"],
-      canLiftListItem: true,
     });
     const preventDefault = vi.fn();
 
@@ -142,8 +127,7 @@ describe("handleBlockEditorKeydown", () => {
       { key: "Tab", shiftKey: true, preventDefault },
     );
 
-    expect(handled).toBe(true);
-    expect(preventDefault).toHaveBeenCalledOnce();
-    expect(liftListItem).toHaveBeenCalledWith("listItem");
+    expect(handled).toBe(false);
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 });

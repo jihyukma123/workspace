@@ -35,36 +35,6 @@ function getActiveListItemTypeName(editor: Editor) {
   return null;
 }
 
-function handleListIndentShortcut(
-  editor: Editor,
-  event: BlockEditorKeydownEvent,
-) {
-  if (event.key !== "Tab") {
-    return false;
-  }
-
-  const listItemTypeName = getActiveListItemTypeName(editor);
-  if (!listItemTypeName) {
-    return false;
-  }
-
-  if (event.shiftKey) {
-    if (!editor.can().liftListItem(listItemTypeName)) {
-      return false;
-    }
-
-    event.preventDefault();
-    return editor.commands.liftListItem(listItemTypeName);
-  }
-
-  if (!editor.can().sinkListItem(listItemTypeName)) {
-    return false;
-  }
-
-  event.preventDefault();
-  return editor.commands.sinkListItem(listItemTypeName);
-}
-
 export function handleBlockEditorKeydown(
   editor: Editor,
   editable: boolean,
@@ -74,10 +44,9 @@ export function handleBlockEditorKeydown(
     return false;
   }
 
-  if (handleListIndentShortcut(editor, event)) {
-    return true;
-  }
-
+  // TipTap's list extensions already own Tab / Shift+Tab indentation.
+  // Handling those keys here as well causes a single keystroke to lift/sink
+  // the current list item twice.
   if (event.key !== " ") {
     return false;
   }

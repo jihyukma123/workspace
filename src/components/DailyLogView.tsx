@@ -362,11 +362,6 @@ export function DailyLogView() {
           </CardHeader>
           <CardContent className="p-4 flex-1 flex flex-col min-h-0">
             <div className="relative flex-1 min-h-0 rounded-md border border-border bg-input overflow-hidden">
-              {!currentContentText.trim() && (
-                <div className="pointer-events-none absolute left-4 top-4 z-10 text-sm text-muted-foreground">
-                  What did you work on today?
-                </div>
-              )}
               <BlockEditor
                 value={document}
                 editable

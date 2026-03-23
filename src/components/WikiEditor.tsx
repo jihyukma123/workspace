@@ -869,11 +869,6 @@ export function WikiEditor() {
             <div className="flex-1 min-h-0 bg-card">
               <div className="flex h-full flex-col p-4">
                 <div className="relative flex-1 min-h-0 rounded-md border border-border bg-input overflow-hidden">
-                  {!selectedPage.contentText.trim() && (
-                    <div className="pointer-events-none absolute left-4 top-4 z-10 text-sm text-muted-foreground">
-                      Start writing this page…
-                    </div>
-                  )}
                   <BlockEditor
                     key={selectedPage.id}
                     value={selectedPage.document}

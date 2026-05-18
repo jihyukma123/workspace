@@ -988,7 +988,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
     const created = mapMemo(result.data);
     set((state) => ({
-      memos: [...state.memos, { ...created, status: memo.status }],
+      memos: [{ ...created, status: memo.status }, ...state.memos],
       selectedMemoId: created.id,
     }));
     return created;

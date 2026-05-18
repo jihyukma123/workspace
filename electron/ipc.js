@@ -4,7 +4,7 @@ import {
   getDocumentStorageFields,
   parseWorkspaceDocumentFromRow,
 } from "./document.js";
-import { summarizeWeeklyDailyLogs } from "./assistant.js";
+import { chat as assistantChat } from "./assistant.js";
 
 const mapProject = (row) => ({
   id: row.id,
@@ -253,22 +253,22 @@ export const purgeExpiredTrash = (db, olderThan) => {
 };
 
 export const registerIpcHandlers = (ipcMain, db) => {
-  ipcMain.handle("assistant:chatWeeklySummary", async (_event, input) => {
-    const parsed = parseInput(schemas.assistantWeeklySummary, input);
+  ipcMain.handle("assistant:chat", async (_event, input) => {
+    const parsed = parseInput(schemas.assistantChat, input);
     if (!parsed.ok) {
       return parsed;
     }
 
     try {
-      const result = await summarizeWeeklyDailyLogs({
+      const result = await assistantChat({
         db,
         projectId: parsed.data.projectId,
         prompt: parsed.data.prompt,
-        threadId: parsed.data.threadId,
+        history: parsed.data.history,
       });
       return ok(result);
     } catch (error) {
-      return err("ASSISTANT_ERROR", "Failed to summarize weekly daily logs", {
+      return err("ASSISTANT_ERROR", "Failed to process assistant request", {
         message: error instanceof Error ? error.message : "Unknown assistant error",
       });
     }
@@ -784,7 +784,7 @@ export const registerIpcHandlers = (ipcMain, db) => {
     try {
       const rows = db
         .prepare(
-          "SELECT * FROM memos WHERE project_id = ? AND deleted_at IS NULL ORDER BY created_at ASC",
+          "SELECT * FROM memos WHERE project_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
         )
         .all(parsed.data.projectId);
       return ok(rows.map(mapMemo));
